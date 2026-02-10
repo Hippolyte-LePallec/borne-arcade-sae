@@ -1,41 +1,49 @@
+package projet.Snake_Eater;
+
 import MG2D.Fenetre;
 import MG2D.geometrie.Point;
 import java.util.ArrayList;
+
 public class Nourriture {
-// Attribut //
-	private ArrayList < Pomme > pomme;
+	// Attribut //
+	private ArrayList<Pomme> pomme;
 	private Fenetre f;
-// Constructeur //
-	public Nourriture ( Fenetre f ) {
+
+	// Constructeur //
+	public Nourriture(Fenetre f) {
 		this.f = f;
-		pomme = new ArrayList < Pomme > ();
+		pomme = new ArrayList<Pomme>();
 		nouvelle_pomme();
 	}
-// Accesseur //
+
+	// Accesseur //
 	// Getter //
-	public ArrayList < Pomme > getPomme () {
+	public ArrayList<Pomme> getPomme() {
 		return pomme;
 	}
-// Méthode //
+
+	// Méthode //
 	// Private //
-	private void nouvelle_pomme () {
-		int x = ( int ) ( Math.random() * 960 );
-		int y = ( int ) ( Math.random() * 700 );
+	private void nouvelle_pomme() {
+		int x = (int) (Math.random() * 960);
+		int y = (int) (Math.random() * 700);
 		x -= x % 30;
 		y -= y % 30;
-		if ( x <60 )
+		if (x < 60)
 			x = 160;
-		if ( y <60 )
+		if (y < 60)
 			y = 160;
-		pomme.add ( new Pomme ( new Point ( x, y ) ) );
-		f.ajouter ( pomme.get( pomme.size() - 1 ).getC() );
+		pomme.add(new Pomme(new Point(x, y)));
+		f.ajouter(pomme.get(pomme.size() - 1).getC());
 	}
+
 	// Public //
-	public void jeu () {
-		if ( pomme.get( pomme.size() - 1 ).getEtat() )
+	public void jeu() {
+		if (pomme.get(pomme.size() - 1).getEtat())
 			nouvelle_pomme();
 	}
-	public void effacer () {
-		f.supprimer ( pomme.get( pomme.size() - 1 ).getC() );
+
+	public void effacer() {
+		f.supprimer(pomme.get(pomme.size() - 1).getC());
 	}
 }

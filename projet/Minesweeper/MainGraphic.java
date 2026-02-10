@@ -1,5 +1,6 @@
+package projet.Minesweeper;
+
 import java.awt.Font;
-import java.security.Key;
 import java.util.ArrayList;
 
 import MG2D.Couleur;
@@ -17,7 +18,7 @@ public class MainGraphic {
             new Point(2 * Constants.sizeTile, Constants.screenHeight - 2 * Constants.sizeTile), Constants.sizeTile,
             Constants.sizeTile);
     private Score score;
-    public Menu menu = new Menu(0);
+    public Menu menu = new Menu();
     public Rectangle cursorMenuTexture = new Rectangle(Couleur.GRIS_FONCE, new Point(437, 550), 400, 100, true);
 
     public MainGraphic(Fenetre window, Board board, Button b, int sizeTile, int width, int height) {
@@ -117,7 +118,7 @@ public class MainGraphic {
     public void openScore(Fenetre window, int width, int height) {
 
         String scoreFileName = "highscores.txt";
-        ArrayList<ScoreData> scores = score.readFile(scoreFileName);
+        ArrayList<ScoreData> scores = Score.readFile(scoreFileName);
         Texte title = new Texte(Couleur.NOIR, "High Scores", calibri, new Point(width / 2, height - 80));
         Font scoreFont = new Font("Calibri", Font.PLAIN, 32);
 
