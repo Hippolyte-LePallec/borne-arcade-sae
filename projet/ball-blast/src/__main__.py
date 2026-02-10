@@ -1,84 +1,57 @@
-from constantes import SCREEN_WIDTH, SCREEN_HEIGHT
+import os
+import random
+import pygame
 from menu import Menu
 from game import Game
 
-import pygame
-import random
-import os
+from constantes import SCREEN_WIDTH, SCREEN_HEIGHT
 
-# Initialize Pygame
+from paths import SOUNDS
+
 pygame.init()
 pygame.mixer.init()
 
-os.environ['SDL_VIDEO_CENTERED'] = '1'
-
-# Set up the display
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Ball Blast")
-screen: pygame.Surface = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
-# Game loop
-running = True
+# Musique du menu
+music_file = os.path.join(SOUNDS, f"music{random.randint(1, 3)}.mp3")
+pygame.mixer.music.load(music_file)
+pygame.mixer.music.play(-1)
+
+menu = Menu(screen)
+game = Game(screen)
+
+state = "menu"  # menu / game / credits
+
 clock = pygame.time.Clock()
 
-# sound1 = pygame.mixer.Sound("./assets/sound/bip.mp3")
-# sound2 = pygame.mixer.Sound("./assets/sound/explosion.mp3")
-# sound3 = pygame.mixer.Sound("./assets/sound/win.mp3")
-# sound4 = pygame.mixer.Sound("./assets/sound/pop.mp3")
-
-menu: Menu = Menu(screen)
-game: Game = None
-
-# Gestion des états
-gameState = False
-pause = False
-newGame = False
-gameOver = False
-credits = False
-
-playMusic = True
-
-pygame.mixer.music.load("assets/sound/menu.mp3")
-pygame.mixer.music.play()
-
-while running:
-
+while True:
     events = pygame.event.get()
-    
     for event in events:
         if event.type == pygame.QUIT:
-            running = False
-            break
+            pygame.quit()
+            exit(0)
 
-    if credits:
-        credits = menu.showCredits()
-    elif not gameState:
-        gameState, newGame, credits = menu.showMenu(events, pause)
-        if gameState and newGame:
-            game = Game(screen)
-            newGame = False
+    if state == "menu":
+        goToGame, newGame, credits = menu.showMenu(events)
+        if credits:
+            state = "credits"
+        elif goToGame:
+            state = "game"
+            if newGame:
+                game = Game(screen)
 
-        # Si on passe du menu au jeu
-        if gameState:
-            playMusic = True
-    else:
-        gameOver, pause = game.showGame()
-        
-        if playMusic:
-            pygame.mixer.music.load("./assets/sound/music" + str(random.randint(1, 3)) + ".mp3")
-            pygame.mixer.music.play(loops=-1)
-            playMusic = False
+    elif state == "credits":
+        if not menu.showCredits():
+            state = "menu"
 
+    elif state == "game":
+        backToMenu, gameOver = game.showGame()
+        if backToMenu:
+            state = "menu"
         if gameOver:
-            gameState, gameOver = game.registerScore()
-        
-        # Si on passe du jeu au menu
-        if pause:
-            gameState = False
-            pygame.mixer.music.load("assets/sound/menu.mp3")
-            pygame.mixer.music.play()
+            game = Game(screen)
 
-    pygame.display.update()
-    clock.tick(40)
-
-pygame.quit()
-exit(0)
+    pygame.display.flip()
+    clock.tick(60)
