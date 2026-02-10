@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.io.File;
 
 
-import MG2D.geometrie.Couleur;
+import MG2D.Couleur;
 import MG2D.geometrie.Point;
 import MG2D.geometrie.Texture;
 import MG2D.geometrie.Texte;

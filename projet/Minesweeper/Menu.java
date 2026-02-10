@@ -1,4 +1,4 @@
-import MG2D.geometrie.Couleur;
+import MG2D.Couleur;
 import MG2D.Fenetre;
 import MG2D.geometrie.Point;
 import MG2D.geometrie.Rectangle;
@@ -6,6 +6,7 @@ import MG2D.geometrie.Texture;
 
 public class Menu {
 
+    public static final int STATUTMENU = 0;
     private int x;
     private int y;
     private int pos = 0;

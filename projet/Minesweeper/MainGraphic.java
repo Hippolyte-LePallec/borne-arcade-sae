@@ -2,7 +2,7 @@ import java.awt.Font;
 import java.security.Key;
 import java.util.ArrayList;
 
-import MG2D.geometrie.Couleur;
+import MG2D.Couleur;
 import MG2D.Fenetre;
 import MG2D.geometrie.Point;
 import MG2D.geometrie.Rectangle;
@@ -17,7 +17,7 @@ public class MainGraphic {
             new Point(2 * Constants.sizeTile, Constants.screenHeight - 2 * Constants.sizeTile), Constants.sizeTile,
             Constants.sizeTile);
     private Score score;
-    public Menu menu = new Menu();
+    public Menu menu = new Menu(0);
     public Rectangle cursorMenuTexture = new Rectangle(Couleur.GRIS_FONCE, new Point(437, 550), 400, 100, true);
 
     public MainGraphic(Fenetre window, Board board, Button b, int sizeTile, int width, int height) {
@@ -240,6 +240,6 @@ public class MainGraphic {
     }
 
     public void moveDownMenuCursor() {
-        this.menu.moveDownMenuCursor(this);
+        this.menu.moveUpMenuCursor(this);
     }
 }

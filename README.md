@@ -83,4 +83,3 @@ Sélectionnez le jeu avec haut/bas du joystick du joueur 1 et lancez le jeu avec
 Quittez le logiciel avec le bouton Z du joueur 1. Une demande de confirmation s'affichera. Validez oui ou non avec le bouton A du joueur 1.
 
 Si vous quittez le menu, vous reviendrez sur le terminal. Attendez 30 secondes pour une extinction totale de la machine.
-# borne-arcade-sae

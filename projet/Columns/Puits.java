@@ -1,3 +1,4 @@
+import MG2D.Couleur;
 import MG2D.Fenetre;
 import MG2D.geometrie.*;
 import MG2D.geometrie.Point;

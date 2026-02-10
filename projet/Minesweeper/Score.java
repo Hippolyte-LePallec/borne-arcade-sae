@@ -1,5 +1,6 @@
 import MG2D.geometrie.*;
 import MG2D.Fenetre;
+import MG2D.Couleur;
 
 import java.awt.Font;
 import java.io.BufferedReader;
@@ -10,6 +11,7 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
+
 
 public class Score {
 

@@ -1,6 +1,6 @@
 
 import MG2D.FenetrePleinEcran;
-import MG2D.geometrie.Couleur;
+import MG2D.Couleur;
 import MG2D.geometrie.Point;
 import MG2D.geometrie.Rectangle;
 import MG2D.geometrie.Texte;

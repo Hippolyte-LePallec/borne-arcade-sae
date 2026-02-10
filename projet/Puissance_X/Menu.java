@@ -1,6 +1,9 @@
 import java.awt.Graphics2D;
 import java.util.ArrayList;
 
+import MG2D.Fenetre;
+import MG2D.geometrie.Rectangle;
+
 class Menu {
 	static public final int DUREE_TOUCHE = 250;
 
@@ -91,4 +94,19 @@ class Menu {
 			graphics.translate(-centreElement.x, -centreElement.y);
 		}
 	}
+
+    public void display(Fenetre window, int sizeTile, int width, int height, Rectangle cursorMenuTexture) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'display'");
+    }
+
+    public void moveUpMenuCursor(MainGraphic mainGraphic) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'moveUpMenuCursor'");
+    }
+
+    public String getPos() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getPos'");
+    }
 }
