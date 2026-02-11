@@ -23,33 +23,53 @@ class Menu {
 	// GESTION DES ELEMENTS + ACCESSEURS / MUTATEURS
 	//
 
-	public int getInterligne() { return this.interligne; }
-	public int getNbElements() { return this.elements.size(); }
+	public int getInterligne() {
+		return this.interligne;
+	}
 
-	public void setInterligne(int interligne) { this.interligne = interligne; }
+	public int getNbElements() {
+		return this.elements.size();
+	}
 
-	public void ajouter(ElementMenu element) { this.elements.add(element); this.selectionner(0); }
-	public ElementMenu recuperer(int indice) { return this.elements.get(indice); }
-	public void retirer(ElementMenu element) { this.elements.remove(element); }
+	public void setInterligne(int interligne) {
+		this.interligne = interligne;
+	}
+
+	public void ajouter(ElementMenu element) {
+		this.elements.add(element);
+		this.selectionner(0);
+	}
+
+	public ElementMenu recuperer(int indice) {
+		return this.elements.get(indice);
+	}
+
+	public void retirer(ElementMenu element) {
+		this.elements.remove(element);
+	}
 
 	public void ajouterEspaceVide() {
 		ElementMenu element = new ElementMenu() {
-			public void mettreAJour(Entree clavier) { }
-			public void afficher(int opacite, Graphics2D graphics) { }
+			public void mettreAJour(Entree clavier) {
+			}
+
+			public void afficher(int opacite, Graphics2D graphics) {
+			}
 		};
 		element.setEstActif(false);
 		this.ajouter(element);
 	}
 
 	public boolean selectionner(int indice) {
-		if (this.recuperer(indice).estActif())
-		{
-			if (this.elementSelectionne != -1) this.recuperer(this.elementSelectionne).setEstSelectionne(false);
+		if (this.recuperer(indice).estActif()) {
+			if (this.elementSelectionne != -1)
+				this.recuperer(this.elementSelectionne).setEstSelectionne(false);
 			this.recuperer(indice).setEstSelectionne(true);
 			this.elementSelectionne = indice;
 		}
 		return this.recuperer(indice).estActif();
 	}
+
 	public void deselectionner() {
 		this.recuperer(this.elementSelectionne).setEstSelectionne(false);
 		this.elementSelectionne = -1;
@@ -63,15 +83,13 @@ class Menu {
 		if (this.getNbElements() == 0)
 			return;
 		boolean hautEnfonce = clavier.haut(DUREE_TOUCHE), basEnfonce = clavier.bas(DUREE_TOUCHE);
-		if (hautEnfonce || basEnfonce || this.elementSelectionne == -1)
-		{
+		if (hautEnfonce || basEnfonce || this.elementSelectionne == -1) {
 			int nouveauSelectionne = this.elementSelectionne;
-			do
-			{
-				nouveauSelectionne = (nouveauSelectionne + (hautEnfonce ? (this.getNbElements() - 1) : 1)) % this.getNbElements();
+			do {
+				nouveauSelectionne = (nouveauSelectionne + (hautEnfonce ? (this.getNbElements() - 1) : 1))
+						% this.getNbElements();
 			} while (!this.selectionner(nouveauSelectionne));
-		}
-		else
+		} else
 			this.recuperer(this.elementSelectionne).mettreAJour(clavier);
 	}
 
@@ -82,31 +100,15 @@ class Menu {
 	public void afficher(Point centre, int opacite, Graphics2D graphics) {
 		int hauteur = this.interligne * this.elements.size();
 		Point centreElement;
-		for (int i = 0; i < this.elements.size(); i++)
-		{
-			centreElement = new Point(centre.x, (int)((double)hauteur * (i - this.elements.size() / 2) + centre.y));
+		for (int i = 0; i < this.elements.size(); i++) {
+			centreElement = new Point(centre.x, (int) ((double) hauteur * (i - this.elements.size() / 2) + centre.y));
 			graphics.translate(centreElement.x, centreElement.y);
 			this.elements.get(i).afficher(
-				// new Point(centre.x, (int)((double)hauteur * (i - this.elements.size() / 2) + centre.y)),
-				opacite,
-				graphics
-			);
+					// new Point(centre.x, (int)((double)hauteur * (i - this.elements.size() / 2) +
+					// centre.y)),
+					opacite,
+					graphics);
 			graphics.translate(-centreElement.x, -centreElement.y);
 		}
 	}
-
-    public void display(Fenetre window, int sizeTile, int width, int height, Rectangle cursorMenuTexture) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'display'");
-    }
-
-    public void moveUpMenuCursor(MainGraphic mainGraphic) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'moveUpMenuCursor'");
-    }
-
-    public String getPos() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getPos'");
-    }
 }
