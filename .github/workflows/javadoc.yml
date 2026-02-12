@@ -1,0 +1,55 @@
+name: Generate and Deploy Javadoc
+
+on:
+    push:
+        branches: ["main"]
+    pull_request:
+        branches: ["main"]
+
+permissions:
+    contents: read
+    pages: write
+    id-token: write
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up JDK 17
+              uses: actions/setup-java@v4
+              with:
+                  java-version: "17"
+                  distribution: "temurin"
+
+            - name: Generate Javadoc
+              run: |
+                  javadoc -d doc \
+                    -encoding UTF-8 \
+                    -charset UTF-8 \
+                    -docencoding UTF-8 \
+                    -author \
+                    -version \
+                    Bouton.java \
+                    ClavierBorneArcade.java \
+                    Graphique.java \
+                    HighScore.java \
+                    LigneHighScore.java \
+                    Main.java \
+                    Pointeur.java \
+                    Boite.java \
+                    BoiteDescription.java \
+                    BoiteImage.java \
+                    BoiteSelection.java
+
+            - name: Upload artifact
+              uses: actions/upload-pages-artifact@v3
+              with:
+                  path: ./doc
+
+            - name: Deploy to GitHub Pages
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              uses: actions/deploy-pages@v4
