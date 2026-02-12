@@ -12,57 +12,63 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 /**
- * Classe représentant une boîte de description pour afficher des informations de jeu.
- * Cette classe gère l'affichage de messages, de contrôles (joystick et boutons),
+ * Classe représentant une boîte de description pour afficher des informations
+ * de jeu.
+ * Cette classe gère l'affichage de messages, de contrôles (joystick et
+ * boutons),
  * et des meilleurs scores (highscores).
  * 
- * <p>Elle hérite de la classe {@link Boite} et utilise la bibliothèque MG2D pour
- * le rendu graphique des éléments.</p>
+ * <p>
+ * Elle hérite de la classe {@link Boite} et utilise la bibliothèque MG2D pour
+ * le rendu graphique des éléments.
+ * </p>
  * 
  * @author BENDAL (modifications)
  * @version 1.0
  */
 public class BoiteDescription extends Boite {
 
-    /** Tableau de textes pour afficher les messages de description (max 10 lignes) */
+    /**
+     * Tableau de textes pour afficher les messages de description (max 10 lignes)
+     */
     private Texte[] message;
-    
+
     /** Indicateur d'arrêt pour la lecture des fichiers */
     private boolean stop;
-    
+
     /** Compteur du nombre de lignes lues */
     private int nombreLigne;
-    
+
     /** Texture représentant le joystick */
     private Texture joystick;
-    
+
     /** Tableau des textures des boutons (6 boutons) */
     private Texture[] bouton;
-    
+
     /** Texte associé au joystick */
     private Texte tJoystick;
-    
+
     /** Tableau des textes associés aux boutons */
     private Texte[] tBouton;
-    
+
     /** Tableau contenant le texte des boutons et du joystick */
     private String[] texteBouton;
-    
+
     /** Texte du titre "HIGHSCORE" */
     private Texte highscore;
-    
+
     /** Liste des 10 meilleurs scores à afficher */
     private Texte[] listeHighScore;
-    
+
     /** Police de caractères pour les textes de taille 15 */
     private Font font1 = null;
-    
+
     /** Police de caractères pour les textes de taille 20 */
     private Font font2 = null;
-    
+
     /** Police de caractères pour les textes de taille 25 */
     private Font font3 = null;
-    
+
     /** Police de caractères pour les textes de taille 14 */
     private Font font4 = null;
 
@@ -75,7 +81,7 @@ public class BoiteDescription extends Boite {
      */
     BoiteDescription(Rectangle rectangle) {
         super(rectangle);
-        
+
         // Chargement des polices personnalisées
         try {
             Font font = null;
@@ -91,11 +97,11 @@ public class BoiteDescription extends Boite {
         } catch (Exception e) {
             System.err.println(e.getMessage());
         }
-        
+
         bouton = new Texture[6];
         tBouton = new Texte[6];
         texteBouton = new String[7];
-        
+
         // Déclaration des textures bouton + joystick
         this.joystick = new Texture("img/joystick2.png", new Point(740, 100), 40, 40);
         for (int i = 0; i < 3; i++) {
@@ -104,7 +110,7 @@ public class BoiteDescription extends Boite {
         for (int i = 3; i < 6; i++) {
             this.bouton[i] = new Texture("img/ibouton2.png", new Point(890 + 130 * (i - 3), 50), 40, 40);
         }
-        
+
         // Déclaration des textes bouton + joystick
         this.tJoystick = new Texte(Couleur.NOIR, "...", font1, new Point(760, 80));
         for (int i = 0; i < 3; i++) {
@@ -113,7 +119,7 @@ public class BoiteDescription extends Boite {
         for (int i = 3; i < 6; i++) {
             this.tBouton[i] = new Texte(Couleur.NOIR, "...", font1, new Point(910 + 130 * (i - 3), 40));
         }
-        
+
         stop = false;
         message = new Texte[10];
         for (int i = 0; i < message.length; i++) {
@@ -136,14 +142,15 @@ public class BoiteDescription extends Boite {
 
     /**
      * Lit un fichier de description et charge son contenu dans les messages.
-     * Le fichier doit se nommer "description.txt" et se trouver dans le répertoire spécifié.
+     * Le fichier doit se nommer "description.txt" et se trouver dans le répertoire
+     * spécifié.
      * Lit jusqu'à 10 lignes maximum.
      * 
      * @param path Le chemin du répertoire contenant le fichier description.txt
      */
     public void lireFichier(String path) {
         String fichier = path + "/description.txt";
-        
+
         // Lecture du fichier texte
         try {
             InputStream ips = new FileInputStream(fichier);
@@ -174,7 +181,8 @@ public class BoiteDescription extends Boite {
 
     /**
      * Lit et affiche les meilleurs scores depuis un fichier.
-     * Le fichier doit se nommer "highscore" et se trouver dans le répertoire spécifié.
+     * Le fichier doit se nommer "highscore" et se trouver dans le répertoire
+     * spécifié.
      * Affiche les 10 meilleurs scores en deux colonnes (5 scores par colonne).
      * 
      * @param path Le chemin du répertoire contenant le fichier highscore
@@ -186,9 +194,9 @@ public class BoiteDescription extends Boite {
             else
                 listeHighScore[i].setTexte((i + 1) + "eme - ");
         }
-        
+
         String fichier = path + "/highscore";
-        
+
         File f = new File(fichier);
         if (!f.exists()) {
             for (int i = 0; i < 10; i++)
@@ -199,21 +207,24 @@ public class BoiteDescription extends Boite {
                 if (i == 0)
                     listeHighScore[i].setTexte("1er : " + liste.get(i).getNom() + " - " + liste.get(i).getScore());
                 else
-                    listeHighScore[i].setTexte((i + 1) + "eme : " + liste.get(i).getNom() + " -  " + liste.get(i).getScore());
+                    listeHighScore[i]
+                            .setTexte((i + 1) + "eme : " + liste.get(i).getNom() + " -  " + liste.get(i).getScore());
             }
         }
     }
 
     /**
      * Lit la configuration des boutons depuis un fichier.
-     * Le fichier doit se nommer "bouton.txt" et contenir les labels séparés par des deux-points (:).
-     * Format attendu : "labelJoystick:bouton1:bouton2:bouton3:bouton4:bouton5:bouton6"
+     * Le fichier doit se nommer "bouton.txt" et contenir les labels séparés par des
+     * deux-points (:).
+     * Format attendu :
+     * "labelJoystick:bouton1:bouton2:bouton3:bouton4:bouton5:bouton6"
      * 
      * @param path Le chemin du répertoire contenant le fichier bouton.txt
      */
     public void lireBouton(String path) {
         String fichier = path + "/bouton.txt";
-        
+
         // Lecture du fichier texte
         try {
             InputStream ips = new FileInputStream(fichier);
@@ -249,7 +260,7 @@ public class BoiteDescription extends Boite {
      * Définit le texte d'un message à un index spécifique.
      * 
      * @param message Le texte du message à définir
-     * @param a L'index du message dans le tableau (0-9)
+     * @param a       L'index du message dans le tableau (0-9)
      */
     public void setMessage(String message, int a) {
         this.message[a].setTexte(message);
@@ -326,5 +337,9 @@ public class BoiteDescription extends Boite {
      */
     public void settBouton(String s, int a) {
         this.tBouton[a].setTexte(s);
+    }
+
+    public void TestDoc(int a, int b) {
+        System.out.println(a + b);
     }
 }
