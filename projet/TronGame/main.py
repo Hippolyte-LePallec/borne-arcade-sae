@@ -8,13 +8,21 @@ Jouable en solo contre une IA ou à deux joueurs
 import pygame
 import sys
 import os
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_dir)
+
 from menu_main import Menu
 from game_main import Game
 from config import *  # Import all constants from config.py
 
 # Initialisation de Pygame
 pygame.init()
-pygame.mixer.init()  # Pour les effets sonores et musiques
+try:
+    pygame.mixer.init()  # Pour les effets sonores et musiques
+except NotImplementedError:
+    print("Warning: Mixer module not available. Audio disabled.")
+    pass  # Continue without audio if mixer is not available
 
 class TronGame:
     def __init__(self):
@@ -31,6 +39,7 @@ class TronGame:
         
         pygame.display.set_caption(TITLE)
         self.clock = pygame.time.Clock()
+        self.startup_time = pygame.time.get_ticks()  # Track startup time to ignore early key events
 
         # États du jeu
         self.running = True
@@ -61,8 +70,9 @@ class TronGame:
             # Version compatible avec pygame 1.9.4 (sans fade_ms)
             pygame.mixer.music.play(-1)  # Jouer en boucle (-1)
             self.current_music = filepath
-        except pygame.error as e:
-            print(f"Erreur lors du chargement de la musique : {e}")
+        except (pygame.error, AttributeError, NotImplementedError) as e:
+            # Ignore audio errors if mixer is not available
+            pass
 
     def toggle_fullscreen(self):
         """Fonction conservée pour compatibilité mais désactivée"""
@@ -71,17 +81,23 @@ class TronGame:
 
     def run(self):
         while self.running:
+            current_time = pygame.time.get_ticks()
+            time_since_startup = current_time - self.startup_time
+            ignore_early_events = time_since_startup < 500  # Ignore events in first 500ms
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
                 elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE or event.key == pygame.K_f:  # ESCAPE ou touche f
+                    if ignore_early_events:
+                        continue
+                    if event.key == pygame.K_ESCAPE:  # ESCAPE to exit from game/options/scores
                         if self.current_state in ["game", "options", "score_screen"]:
                             self.current_state = "menu"
                             self.play_music("./assets/sounds/music_menu.wav")
-                        else:
-                            self.running = False
-                    # Fonctionnalité de plein écran retirée
+                        elif self.current_state == "menu":
+                            self.running = False  # Exit from menu
+                    # 'f' key removed - no fullscreen toggle
 
                 # Transmettre les événements à l'état courant
                 if self.current_state == "menu":
@@ -151,7 +167,13 @@ class TronGame:
             self.running = False
 
 if __name__ == "__main__":
-    game = TronGame()
-    game.run()
-    pygame.quit()
-    sys.exit()
+    try:
+        game = TronGame()
+        game.run()
+    except Exception as e:
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        pygame.quit()
+        sys.exit()
