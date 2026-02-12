@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 public class Constants {
 
     public static final int screenWidth = 1275;

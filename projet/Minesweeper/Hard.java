@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 public class Hard implements Level {
 
     private int width = 22;

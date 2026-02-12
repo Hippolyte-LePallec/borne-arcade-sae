@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 import MG2D.Couleur;
 import MG2D.Fenetre;
 import MG2D.geometrie.Point;
@@ -19,7 +21,8 @@ public class Menu {
     public void display(Fenetre window, int sizeTile, int width, int height, Rectangle cursorMenuTexture) {
         // window.ajouter(new Rectangle(Couleur.BLEU, new Point(0, 0), width, height,
         // true));
-        window.ajouter(new Texture("./img/menu_background.png", new Point(0, 0), width, height));
+        window.ajouter(new Texture("./borne-arcade-sae/projet/Minesweeper/img/menu_background.png", new Point(0, 0),
+                width, height));
         window.ajouter(new Rectangle(Couleur.GRIS_CLAIR, new Point(337, 765), 600, 100,
                 true));
         window.ajouter(new Rectangle(Couleur.GRIS_CLAIR, new Point(437, 550), 400, 100,
@@ -31,12 +34,17 @@ public class Menu {
         window.ajouter(new Rectangle(Couleur.GRIS_CLAIR, new Point(437, 100), 400, 100,
                 true));
 
-        window.ajouter(new Texture("./img/Minesweeper.png", new Point(337, 765), 600, 100));
+        window.ajouter(new Texture("./borne-arcade-sae/projet/Minesweeper/img/Minesweeper.png", new Point(337, 765),
+                600, 100));
         window.ajouter(cursorMenuTexture);
-        window.ajouter(new Texture("./img/menu_play.png", new Point(437, 550), 400, 100));
-        window.ajouter(new Texture("./img/menu_scores.png", new Point(437, 400), 400, 100));
-        window.ajouter(new Texture("./img/menu_rules.png", new Point(437, 250), 400, 100));
-        window.ajouter(new Texture("./img/menu_quit.png", new Point(437, 100), 400, 100));
+        window.ajouter(
+                new Texture("./borne-arcade-sae/projet/Minesweeper/img/menu_play.png", new Point(437, 550), 400, 100));
+        window.ajouter(new Texture("./borne-arcade-sae/projet/Minesweeper/img/menu_scores.png", new Point(437, 400),
+                400, 100));
+        window.ajouter(
+                new Texture("./borne-arcade-sae/projet/Minesweeper/img/menu_rules.png", new Point(437, 250), 400, 100));
+        window.ajouter(
+                new Texture("./borne-arcade-sae/projet/Minesweeper/img/menu_quit.png", new Point(437, 100), 400, 100));
 
         // window.ajouter(new Rectangle(Couleur.BLANC, new Point(437, 550), 400, 100,
         // false));

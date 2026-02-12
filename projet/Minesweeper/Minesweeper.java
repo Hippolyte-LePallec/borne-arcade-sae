@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 import MG2D.audio.*;
 
 public class Minesweeper {
@@ -19,7 +21,7 @@ public class Minesweeper {
 
         int menu = 1;
 
-        Musique music2 = new Musique("./sounds/loading.mp3");
+        Musique music2 = new Musique("./borne-arcade-sae/projet/Minesweeper/sounds/loading.mp3");
         music2.lecture();
 
         while (true) {
@@ -104,7 +106,7 @@ public class Minesweeper {
                         }
                         m.window.rafraichir();
                     }
-                    if (keyboard.getJoyJ2BasTape()) {
+                    if (keyboard.getJoyJ1BasTape()) {
                         if (m.cursor.getY() > 0) {
                             m.cursor.moveDown();
                             m.mg.moveCursor(0, -Constants.sizeTile);
@@ -131,7 +133,7 @@ public class Minesweeper {
                         m.mg.update(m.window, m.board);
                         m.window.rafraichir();
                         m.end = m.board.endGameMine();
-                        Bruitage b = new Bruitage("./sounds/select.mp3");
+                        Bruitage b = new Bruitage("./borne-arcade-sae/projet/Minesweeper/sounds/select.mp3");
                         b.lecture();
                         if (m.end) {
                             m.mg.endOfTheGameMine(m.window, m.level.getSizeTile(),

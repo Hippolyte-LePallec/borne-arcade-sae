@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 import java.awt.Rectangle;
 
 import MG2D.geometrie.Point;
@@ -98,12 +100,12 @@ public class Cursor {
     }
 
     public static Texture cursorTexture() {
-        return new Texture("./img/Minesweeper_cursor.png",
+        return new Texture("./borne-arcade-sae/projet/Minesweeper/img/Minesweeper_cursor.png",
                 new Point(0, 0), Constants.sizeTile, Constants.sizeTile);
     }
 
     public static Texture cursorTexture(int x, int y) {
-        return new Texture("./img/Minesweeper_cursor.png",
+        return new Texture("./borne-arcade-sae/projet/Minesweeper/img/Minesweeper_cursor.png",
                 new Point(x, y), Constants.sizeTile, Constants.sizeTile);
     }
 

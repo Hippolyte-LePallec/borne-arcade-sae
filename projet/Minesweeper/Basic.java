@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 public class Basic implements Level {
 
     private int width = Constants.width;

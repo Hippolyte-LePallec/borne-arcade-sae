@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 public class DarkClassic implements Theme {
 
     public DarkClassic() {
@@ -27,7 +29,7 @@ public class DarkClassic implements Theme {
     public String getDigTrue() {
         return this.toString() + "/Minesweeper_questionmark.png";
     }
-    
+
     @Override
     public String getTileMasked() {
         return this.toString() + "/Minesweeper_unopened_square.png";
@@ -72,7 +74,7 @@ public class DarkClassic implements Theme {
     public void display() {
         System.out.println("DarkClassic theme selected.");
     }
-    
+
     @Override
     public String getLevelEasy() {
         return this.toString() + "/Level_easy.png";

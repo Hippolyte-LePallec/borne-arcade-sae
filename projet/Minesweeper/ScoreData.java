@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 public class ScoreData {
     private String name;
     private int score; // This is the score time convert into seconde :)

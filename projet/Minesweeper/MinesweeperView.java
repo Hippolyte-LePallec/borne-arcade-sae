@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 import MG2D.FenetrePleinEcran;
 import MG2D.Souris;
 import MG2D.audio.Musique;
@@ -20,8 +22,9 @@ public class MinesweeperView {
         this.level = new Basic();
         this.window = new FenetrePleinEcran("Minesweeper");
         this.window.addKeyListener(keyboard);
-        // this.board = new Board(level.getWidth(), level.getHeight(), level.getNbBombs());
-	this.board = new Board(0, 0, 0);
+        // this.board = new Board(level.getWidth(), level.getHeight(),
+        // level.getNbBombs());
+        this.board = new Board(0, 0, 0);
         this.button = new Dig(true);
         this.mouse = window.getSouris();
         this.cursor = new Cursor(level.getSizeTile());

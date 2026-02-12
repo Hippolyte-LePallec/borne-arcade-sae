@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 public class Easy implements Level {
 
     private int width = ConstanteEasy.widthEasy;

@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 public class ConstanteHard {
 
     public static final int widthHard = 22;
@@ -5,6 +7,6 @@ public class ConstanteHard {
     public static final int nbBombsHard = 100;
     public static final int sizeTileHard = 30;
     public static final int widthWindowHard = widthHard * sizeTileHard;
-    public static final int heightWindowHard = heightHard * sizeTileHard + 3*sizeTileHard;
-    
+    public static final int heightWindowHard = heightHard * sizeTileHard + 3 * sizeTileHard;
+
 }

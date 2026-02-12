@@ -1,11 +1,13 @@
+package projet.Minesweeper;
+
 import MG2D.geometrie.Point;
 import MG2D.geometrie.Texture;
 
-public class Flag implements Button{
+public class Flag implements Button {
 
     /* Attributes */
     private boolean state = false;
-    
+
     /* Builders */
     public Flag() {
         this.state = false;
@@ -29,7 +31,8 @@ public class Flag implements Button{
     @Override
     public void display() {
         /**
-         * If the button is activated, we display a "D" character, else we display a space
+         * If the button is activated, we display a "D" character, else we display a
+         * space
          */
         if (this.state) {
             System.out.print("D");
@@ -54,9 +57,13 @@ public class Flag implements Button{
          * We create a square with the color blue, the position and the size of the tile
          */
         if (this.state) {
-            return new Texture("./img/Minesweeper_flag.png", new Point(width - 3*sizeTile,height-2*sizeTile), sizeTile, sizeTile);
+            return new Texture("./projet/Minesweeper/img/Minesweeper_flag.png",
+                    new Point(width - 3 * sizeTile, height - 2 * sizeTile),
+                    sizeTile, sizeTile);
         } else {
-            return new Texture("./img/Minesweeper_flag.png", new Point(width - 3*sizeTile,height-2*sizeTile), sizeTile, sizeTile);
-        }    
+            return new Texture("./projet/Minesweeper/img/Minesweeper_flag.png",
+                    new Point(width - 3 * sizeTile, height - 2 * sizeTile),
+                    sizeTile, sizeTile);
+        }
     }
 }

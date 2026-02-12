@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 public class Classic implements Theme {
 
     public Classic() {
@@ -27,7 +29,7 @@ public class Classic implements Theme {
     public String getDigTrue() {
         return this.toString() + "/Minesweeper_questionmark.png";
     }
-    
+
     @Override
     public String getTileMasked() {
         return this.toString() + "/Minesweeper_unopened_square.png";
@@ -64,7 +66,6 @@ public class Classic implements Theme {
         return this.toString() + "/Minesweeper_lose.png";
     }
 
-
     @Override
     public String toString() {
         return "classic";
@@ -89,5 +90,5 @@ public class Classic implements Theme {
     public String getLevelHard() {
         return this.toString() + "/Level_hard.png";
     }
-    
+
 }

@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 import MG2D.geometrie.Point;
 import MG2D.geometrie.Rectangle;
 import MG2D.geometrie.Texture;
@@ -81,12 +83,14 @@ public class Bomb implements Tile {
         Point p = new Point(this.x * sizeTile, this.y * sizeTile);
         if (this.masked) {
             if (this.flag) {
-                return new Texture("./img/Minesweeper_flag.png", p, sizeTile, sizeTile);
+                return new Texture("./borne-arcade-sae/projet/Minesweeper/img/Minesweeper_flag.png", p, sizeTile,
+                        sizeTile);
             } else {
-                return new Texture("./img/Minesweeper_unopened_square.png", p, sizeTile, sizeTile);
+                return new Texture("./borne-arcade-sae/projet/Minesweeper/img/Minesweeper_unopened_square.png", p,
+                        sizeTile, sizeTile);
             }
         } else {
-            return new Texture("./img/Minesweeper_bomb.png", p, sizeTile, sizeTile);
+            return new Texture("./borne-arcade-sae/projet/Minesweeper/img/Minesweeper_bomb.png", p, sizeTile, sizeTile);
         }
     }
 

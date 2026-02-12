@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 public interface Level {
     public int getWidth();
 

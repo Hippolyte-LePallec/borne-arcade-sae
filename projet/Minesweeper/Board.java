@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 import java.util.ArrayList;
 
 public class Board {

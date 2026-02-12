@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 import MG2D.geometrie.Point;
 import MG2D.geometrie.Texture;
 
@@ -55,10 +57,11 @@ public class Dig implements Button {
          * We create a square with the color blue, the position and the size of the tile
          */
         if (this.state) {
-            return new Texture("./img/Minesweeper_questionmark_true.png",
+            return new Texture("./projet/Minesweeper/img/Minesweeper_questionmark_true.png",
                     new Point(2 * sizeTile, height - 2 * sizeTile), sizeTile, sizeTile);
         } else {
-            return new Texture("./img/Minesweeper_questionmark.png", new Point(2 * sizeTile, height - 2 * sizeTile),
+            return new Texture("./projet/Minesweeper/img/Minesweeper_questionmark.png",
+                    new Point(2 * sizeTile, height - 2 * sizeTile),
                     sizeTile, sizeTile);
         }
     }

@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 public class Medium implements Level {
 
     private int width = 16;

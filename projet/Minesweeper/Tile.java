@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 import MG2D.geometrie.Rectangle;
 
 public interface Tile {

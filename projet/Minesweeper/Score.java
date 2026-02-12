@@ -1,3 +1,5 @@
+package projet.Minesweeper;
+
 import MG2D.geometrie.*;
 import MG2D.Fenetre;
 import MG2D.Couleur;
@@ -11,7 +13,6 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
-
 
 public class Score {
 
