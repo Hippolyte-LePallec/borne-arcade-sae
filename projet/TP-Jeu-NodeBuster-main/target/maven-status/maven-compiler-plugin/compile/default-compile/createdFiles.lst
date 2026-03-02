@@ -31,6 +31,8 @@ fr/iutlittoral/systems/Score.class
 fr/iutlittoral/components/Target.class
 fr/iutlittoral/systems/SlimeListener.class
 fr/iutlittoral/events/TargetDestroyed.class
+fr/iutlittoral/App$2.class
+fr/iutlittoral/App$GameState.class
 fr/iutlittoral/systems/spawners/AbstractSpawnerSystem.class
 fr/iutlittoral/components/BoxCollider.class
 fr/iutlittoral/systems/VelocitySystem.class
