@@ -123,7 +123,8 @@ public class App extends Application {
                 long elapsedSeconds = elapsedMs / 1000;
                 long remainingSeconds = Math.max(0, TIME_LIMIT_SECONDS - elapsedSeconds);
 
-                // Vérification de défaite                if (elapsedSeconds >= TIME_LIMIT_SECONDS && score.getScore() < MIN_SCORE) {
+                // Vérification de défaite
+                if (elapsedSeconds >= TIME_LIMIT_SECONDS && score.getScore() < MIN_SCORE) {
                     gameOver = true;
                     gameWon = false;
                     gameState = GameState.GAME_OVER;
@@ -163,9 +164,11 @@ public class App extends Application {
                 // update game world (all systems including renderers run here)
                 world.update(secondsSinceLastFrame);
 
-                // Le score et le chronomètre sont dessinés après le monde pour rester au premier plan
+                // Le score et le chronomètre sont dessinés après le monde pour rester au
+                // premier plan
                 // Le score est maintenu par l'écouteur Score qui s'incrémente
-                // lorsque des événements TargetDestroyed sont envoyés par le système de collision.
+                // lorsque des événements TargetDestroyed sont envoyés par le système de
+                // collision.
                 // L'UI interroge simplement score.getScore() à chaque image.
                 gc.save();
                 gc.setFill(Color.WHITE);
@@ -184,7 +187,8 @@ public class App extends Application {
                 gc.strokeRect(cursorX - halfSize, cursorY - halfSize, Cursor.SIZE, Cursor.SIZE);
                 gc.restore();
             }
-        };gameplayTimer.start();
+        };
+        gameplayTimer.start();
 
     }
 

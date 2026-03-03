@@ -121,7 +121,7 @@ public class MenuRenderer {
         drawWrappedText(gc, "• Slimes CYAN : +3 points (se divisent en 4 boîtes lorsqu'on les touche)",
                 canvas.getWidth() / 2 - 600, y, 1200);
         y += lineHeight;
-        drawWrappedText(gc, "• Cercles VIRUS VIOLETS : -10² points (taille aléatoire, évitez-les !)",
+        drawWrappedText(gc, "• Cercles VIRUS VIOLETS : -10 points (taille aléatoire, évitez-les !)",
                 canvas.getWidth() / 2 - 600,
                 y, 1200);
         y += lineHeight * 1.5;
