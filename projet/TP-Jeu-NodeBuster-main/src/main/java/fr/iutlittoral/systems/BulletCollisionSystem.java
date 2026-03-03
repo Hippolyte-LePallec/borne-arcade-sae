@@ -12,6 +12,7 @@ import fr.iutlittoral.components.Bullet;
 import fr.iutlittoral.components.BoxCollider;
 import fr.iutlittoral.components.Position;
 import fr.iutlittoral.components.Target;
+import fr.iutlittoral.components.Slime;
 import fr.iutlittoral.events.TargetDestroyed;
 
 /**
@@ -63,23 +64,45 @@ public class BulletCollisionSystem extends EntitySystem {
 
     @Override
     public void update(float deltaTime) {
-        this.bulletEntities.forEach(
-                bulletEntity -> {
-                    Bullet bullet = bulletMapper.get(bulletEntity);
-                    this.targetEntities.forEach(targetEntity -> {
-                        BoxCollider collider = colliderMapper.get(targetEntity);
-                        Position position = positionMapper.get(targetEntity);
+        // iterate over every bullet and test against all targets
+        this.bulletEntities.forEach(bulletEntity -> {
+            Bullet bullet = bulletMapper.get(bulletEntity);
+            this.targetEntities.forEach(targetEntity -> {
+                BoxCollider collider = colliderMapper.get(targetEntity);
+                Position position = positionMapper.get(targetEntity);
 
-                        if (bullet.x + bullet.radius >= position.x
-                                && bullet.x - bullet.radius < position.x + collider.width &&
-                                bullet.y + bullet.radius >= position.y
-                                && bullet.y - bullet.radius < position.y + collider.height) {
-                            int score = targetEntity.getComponent(Target.class).value;
-                            targetDestroyedSignal.dispatch(new TargetDestroyed(score, bullet.x, bullet.y));
-                            // setScore(score);
-                            getEngine().removeEntity(targetEntity);
-                        }
-                    });
-                });
+                // collide square bullet with rectangular target using AABB overlap test
+                double bx = bullet.x;
+                double by = bullet.y;
+                double bw = bullet.width;
+                double bh = bullet.height;
+
+                boolean overlaps = bx < position.x + collider.width &&
+                        bx + bw > position.x &&
+                        by < position.y + collider.height &&
+                        by + bh > position.y;
+
+                if (overlaps) {
+                    // SCORE SYSTEM: the destroyed target knows how many points it is worth
+                    int score = targetEntity.getComponent(Target.class).value;
+
+                    // SCORE SYSTEM: notify listeners that a target was destroyed
+                    // TargetDestroyed contains the score value and the location of
+                    // the explosion (center of the bullet) so that other systems can
+                    // react (e.g. show particles).
+                    double centerX = bx + bw / 2.0;
+                    double centerY = by + bh / 2.0;
+                    // determine if the removed target was a slime
+                    boolean wasSlime = targetEntity.getComponent(fr.iutlittoral.components.Slime.class) != null;
+                    targetDestroyedSignal.dispatch(new TargetDestroyed(score, centerX, centerY, wasSlime));
+
+                    // remove target from world immediately
+                    getEngine().removeEntity(targetEntity);
+
+                    // BULLET SYSTEM: remove bullet so it doesn't hit anything else
+                    getEngine().removeEntity(bulletEntity);
+                }
+            });
+        });
     }
 }
