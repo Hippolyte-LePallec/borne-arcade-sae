@@ -94,7 +94,8 @@ public class BulletCollisionSystem extends EntitySystem {
                     double centerY = by + bh / 2.0;
                     // determine if the removed target was a slime
                     boolean wasSlime = targetEntity.getComponent(fr.iutlittoral.components.Slime.class) != null;
-                    targetDestroyedSignal.dispatch(new TargetDestroyed(score, centerX, centerY, wasSlime));
+                    targetDestroyedSignal
+                            .dispatch(new TargetDestroyed(score, centerX, centerY, wasSlime, targetEntity));
 
                     // remove target from world immediately
                     getEngine().removeEntity(targetEntity);

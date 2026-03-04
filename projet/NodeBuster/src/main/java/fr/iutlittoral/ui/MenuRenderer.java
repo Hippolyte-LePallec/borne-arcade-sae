@@ -4,6 +4,8 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import java.util.ArrayList;
+import fr.iutlittoral.utils.ScoreManager;
 import javafx.scene.text.FontWeight;
 
 /**
@@ -54,16 +56,56 @@ public class MenuRenderer {
         // option JOUER
         drawMenuOption(gc, "JOUER", canvas.getWidth() / 2, startY, menuSelection == 0);
 
+        // option HIGHSCORES
+        drawMenuOption(gc, "SCORES", canvas.getWidth() / 2, startY + spacing, menuSelection == 1);
+
         // option INSTRUCTIONS
-        drawMenuOption(gc, "EXPLICATION", canvas.getWidth() / 2, startY + spacing, menuSelection == 1);
+        drawMenuOption(gc, "EXPLICATION", canvas.getWidth() / 2, startY + spacing * 2, menuSelection == 2);
 
         // option QUITTER
-        drawMenuOption(gc, "QUITTER", canvas.getWidth() / 2, startY + spacing * 2, menuSelection == 2);
+        drawMenuOption(gc, "QUITTER", canvas.getWidth() / 2, startY + spacing * 3, menuSelection == 3);
 
         // consigne en bas
         gc.setFont(Font.font("Arial", 20));
         gc.setFill(TEXT_GRAY);
         gc.fillText("↑ ↓ Se déplacer  |  ENTRÉE Sélectionner", canvas.getWidth() / 2 - 200, canvas.getHeight() - 50);
+
+        gc.restore();
+    }
+
+    /**
+     * Render the highscores screen
+     */
+    public static void renderHighScores(Canvas canvas, ArrayList<ScoreManager.ScoreLine> scores) {
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.save();
+
+        gc.setFill(BACKGROUND_GRADIENT_TOP);
+        gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight() / 2);
+        gc.setFill(BACKGROUND_GRADIENT_BOTTOM);
+        gc.fillRect(0, canvas.getHeight() / 2, canvas.getWidth(), canvas.getHeight() / 2);
+
+        gc.setFont(Font.font("Arial", FontWeight.BOLD, 80));
+        gc.setFill(ACCENT_YELLOW);
+        gc.fillText("HIGHSCORES", canvas.getWidth() / 2 - 200, 100);
+
+        gc.setFont(Font.font("Arial", 28));
+        gc.setFill(TEXT_WHITE);
+        double y = 180;
+        if (scores == null || scores.isEmpty()) {
+            gc.fillText("Aucun score enregistré.", canvas.getWidth() / 2 - 200, y);
+        } else {
+            for (int i = 0; i < Math.min(10, scores.size()); i++) {
+                ScoreManager.ScoreLine s = scores.get(i);
+                String name = (s.playerName == null || s.playerName.trim().isEmpty()) ? "(anonyme)" : s.playerName;
+                String line = String.format("%2d. %s - %d", i + 1, name, s.score);
+                gc.fillText(line, canvas.getWidth() / 2 - 300, y + i * 36);
+            }
+        }
+
+        gc.setFont(Font.font("Arial", 20));
+        gc.setFill(TEXT_GRAY);
+        gc.fillText("Appuyez sur ENTRÉE pour revenir", canvas.getWidth() / 2 - 200, canvas.getHeight() - 50);
 
         gc.restore();
     }
@@ -200,11 +242,14 @@ public class MenuRenderer {
         double startY = 350;
         double spacing = 140;
 
+        // option ENREGISTRER SCORE
+        drawMenuOption(gc, "ENREGISTRER", canvas.getWidth() / 2, startY, menuSelection == 0);
+
         // option REJOUER
-        drawMenuOption(gc, "REJOUER", canvas.getWidth() / 2, startY, menuSelection == 0);
+        drawMenuOption(gc, "REJOUER", canvas.getWidth() / 2, startY + spacing, menuSelection == 1);
 
         // option QUITTER
-        drawMenuOption(gc, "QUITTER", canvas.getWidth() / 2, startY + spacing, menuSelection == 1);
+        drawMenuOption(gc, "QUITTER", canvas.getWidth() / 2, startY + spacing * 2, menuSelection == 2);
 
         // consigne en bas
         gc.setFont(Font.font("Arial", 20));

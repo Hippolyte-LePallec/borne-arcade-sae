@@ -3,7 +3,7 @@
 # This script is executed from the root of the repository by Graphique/Pointeur.
 
 # Navigate to project directory (one level up from Script/)
-cd "$(dirname "$0")/../projet/TP-Jeu-NodeBuster-main" || exit 1
+cd "$(dirname "$0")/../projet/NodeBuster" || exit 1
 
 # if maven is available we can build or run via the javafx plugin
 if command -v mvn >/dev/null 2>&1; then

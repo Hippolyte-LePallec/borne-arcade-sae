@@ -5,13 +5,16 @@ import fr.iutlittoral.components.Target;
 import fr.iutlittoral.components.spawntypes.MovingBoxSpawnType;
 import fr.iutlittoral.components.spawntypes.SimpleBoxSpawnType;
 import fr.iutlittoral.components.spawntypes.PenaltySpawnType;
+import fr.iutlittoral.components.spawntypes.HourglassSpawnType;
 import fr.iutlittoral.events.TargetDestroyed;
 import fr.iutlittoral.systems.*;
 import fr.iutlittoral.systems.spawners.MovingboxSpawnerSystem;
 import fr.iutlittoral.systems.spawners.SimpleBoxSpawnerSystem;
 import fr.iutlittoral.systems.spawners.SlimeBoxSpawnerSystem;
 import fr.iutlittoral.systems.spawners.PenaltySpawnerSystem;
+import fr.iutlittoral.systems.spawners.HourglassSpawnerSystem;
 import fr.iutlittoral.ui.MenuRenderer;
+import fr.iutlittoral.ui.HighScoreNameInputRenderer;
 import fr.iutlittoral.utils.*;
 import fr.iutlittoral.components.Cursor;
 import javafx.application.Application;
@@ -27,11 +30,12 @@ import javafx.stage.Stage;
 import com.badlogic.ashley.core.Engine;
 import com.badlogic.ashley.core.Family;
 import com.badlogic.ashley.signals.Signal;
+import java.util.ArrayList;
 
 public class App extends Application {
 
     enum GameState {
-        MENU, INSTRUCTIONS, PLAYING, GAME_OVER
+        MENU, HIGHSCORES, INSTRUCTIONS, PLAYING, GAME_OVER, ENTERING_NAME
     }
 
     private double cursorX;
@@ -44,11 +48,11 @@ public class App extends Application {
     private boolean enterPrev = false;
     private boolean upPrev = false;
     private boolean downPrev = false;
-    private static final int WIN_SCORE = 150;
-    private static final int MIN_SCORE = 100;
-    private static final long TIME_LIMIT_SECONDS = 60;
+    private static final int INITIAL_TIME_SECONDS = 30;
+    private static final String SCORES_FILE = "nodebusters_scores.txt";
     // CURSOR: size is defined in Cursor.SIZE to avoid sprinkling magic numbers
     private long gameStartTimeMs = 0;
+    private float remainingTimeSeconds = INITIAL_TIME_SECONDS; // Temps dynamique qui change avec les sabliers
     private Canvas canvas;
     private Font font;
     private Mouse mouse;
@@ -56,6 +60,14 @@ public class App extends Application {
     private Score score;
     private EntityCreator creator;
     private GameLoopTimer gameplayTimer;
+    private HighScoreNameInputRenderer nameInputRenderer;
+    private int finalScore;
+    private int scorePosition;
+    private boolean leftPrev = false;
+    private boolean rightPrev = false;
+    private boolean upPrevInput = false;
+    private boolean downPrevInput = false;
+    private HourglassListener hourglassListener;
 
     @Override
     public void start(Stage stage) {
@@ -78,6 +90,9 @@ public class App extends Application {
         cursorX = canvas.getWidth() / 2;
         cursorY = canvas.getHeight() / 2;
 
+        // Initialiser le renderer de saisie de nom
+        nameInputRenderer = new HighScoreNameInputRenderer();
+
         // Boucle du menu principal
         GameLoopTimer mainTimer = new GameLoopTimer() {
             @Override
@@ -85,12 +100,18 @@ public class App extends Application {
                 if (gameState == GameState.MENU) {
                     MenuRenderer.renderMainMenu(canvas, menuSelection);
                     handleMenuInput();
+                } else if (gameState == GameState.HIGHSCORES) {
+                    // render highscores and handle input to return
+                    MenuRenderer.renderHighScores(canvas, fr.iutlittoral.utils.ScoreManager.loadScores(SCORES_FILE));
+                    handleHighscoresInput();
                 } else if (gameState == GameState.INSTRUCTIONS) {
                     MenuRenderer.renderInstructions(canvas);
                     handleInstructionsInput();
                 } else if (gameState == GameState.GAME_OVER) {
                     MenuRenderer.renderGameOverMenu(canvas, gameWon, menuSelection);
                     handleGameOverMenuInput();
+                } else if (gameState == GameState.ENTERING_NAME) {
+                    handleNameInput();
                 }
             }
         };
@@ -108,27 +129,33 @@ public class App extends Application {
 
                 if (gameStartTimeMs == 0) {
                     gameStartTimeMs = System.currentTimeMillis();
+                    remainingTimeSeconds = INITIAL_TIME_SECONDS;
                 }
 
-                // Vérification de victoire
-                if (!gameOver && score.getScore() >= WIN_SCORE) {
-                    gameOver = true;
-                    gameWon = true;
-                    gameState = GameState.GAME_OVER;
-                    menuSelection = 0;
-                    return;
-                }
+                // Décrémenter le temps au fur et à mesure
+                remainingTimeSeconds -= secondsSinceLastFrame;
 
-                long elapsedMs = System.currentTimeMillis() - gameStartTimeMs;
-                long elapsedSeconds = elapsedMs / 1000;
-                long remainingSeconds = Math.max(0, TIME_LIMIT_SECONDS - elapsedSeconds);
-
-                // Vérification de défaite
-                if (elapsedSeconds >= TIME_LIMIT_SECONDS && score.getScore() < MIN_SCORE) {
+                // Vérification de défaite: le temps arrive à zéro
+                if (remainingTimeSeconds <= 0) {
                     gameOver = true;
-                    gameWon = false;
-                    gameState = GameState.GAME_OVER;
-                    menuSelection = 0;
+                    gameWon = false; // Plus de condition de victoire
+                    finalScore = score.getScore();
+
+                    // Calculer la position du score
+                    ArrayList<ScoreManager.ScoreLine> scores = ScoreManager.loadScores(SCORES_FILE);
+                    scorePosition = scores.size(); // Par défaut, position en dernier
+                    for (int i = 0; i < scores.size(); i++) {
+                        if (finalScore > scores.get(i).score) {
+                            scorePosition = i;
+                            break;
+                        }
+                    }
+
+                    // Réinitialiser le renderer de saisie de nom
+                    nameInputRenderer = new HighScoreNameInputRenderer();
+
+                    // Passer à l'écran d'enregistrement du nom
+                    gameState = GameState.ENTERING_NAME;
                     return;
                 }
 
@@ -174,10 +201,10 @@ public class App extends Application {
                 gc.setFill(Color.WHITE);
                 gc.setFont(font);
                 gc.fillText("Score : " + score.getScore(), 10, 35);
-                // remainingSeconds is calculated earlier from the start timestamp
-                gc.fillText("Temps : " + remainingSeconds + "s", 10, 65);
+                // Afficher le temps restant
+                gc.fillText("Temps : " + String.format("%.1f", Math.max(0, remainingTimeSeconds)) + "s", 10, 65);
                 gc.setFont(new Font("Vera.ttf", 16));
-                gc.fillText("Objectif : " + MIN_SCORE + " points en " + TIME_LIMIT_SECONDS + "s", 10, 85);
+                gc.fillText("Collecte les sabliers pour ajouter du temps !", 10, 85);
                 gc.setFont(font);
 
                 // cursor render: draw square centered at current coordinates
@@ -192,21 +219,34 @@ public class App extends Application {
 
     }
 
+    /**
+     * Ajoute du temps au compteur de jeu
+     * Utilisé quand les sabliers sont détruits
+     */
+    public void addTimeBonus(int seconds) {
+        if (gameState == GameState.PLAYING) {
+            remainingTimeSeconds += seconds;
+        }
+    }
+
     private void handleMenuInput() {
         boolean upNow = keyboard.isKeyPressed(KeyCode.UP);
         boolean downNow = keyboard.isKeyPressed(KeyCode.DOWN);
         boolean enterNow = keyboard.isKeyPressed(KeyCode.ENTER) || keyboard.isKeyPressed(KeyCode.Z);
 
         if (upNow && !upPrev) {
-            menuSelection = (menuSelection - 1 + 3) % 3; // 0=Play, 1=Instructions, 2=Quit
+            menuSelection = (menuSelection - 1 + 4) % 4; // 0=Play,1=Highscores,2=Instructions,3=Quit
         }
         if (downNow && !downPrev) {
-            menuSelection = (menuSelection + 1) % 3;
+            menuSelection = (menuSelection + 1) % 4;
         }
         if (enterNow && !enterPrev) {
             if (menuSelection == 0) {
                 startNewGame();
             } else if (menuSelection == 1) {
+                // show highscores
+                gameState = GameState.HIGHSCORES;
+            } else if (menuSelection == 2) {
                 gameState = GameState.INSTRUCTIONS;
             } else {
                 System.exit(0);
@@ -227,19 +267,95 @@ public class App extends Application {
         enterPrev = enterNow;
     }
 
+    private void handleNameInput() {
+        // Charger les scores pour afficher le contexte
+        ArrayList<ScoreManager.ScoreLine> scores = ScoreManager.loadScores(SCORES_FILE);
+
+        String previousPlayer = "";
+        int previousScore = 0;
+        if (scorePosition > 0 && scorePosition - 1 < scores.size()) {
+            previousPlayer = scores.get(scorePosition - 1).playerName;
+            previousScore = scores.get(scorePosition - 1).score;
+        }
+
+        String nextPlayer = "";
+        int nextScore = 0;
+        if (scorePosition < scores.size()) {
+            nextPlayer = scores.get(scorePosition).playerName;
+            nextScore = scores.get(scorePosition).score;
+        }
+
+        nameInputRenderer.render(canvas, finalScore, scorePosition, previousPlayer, previousScore, nextPlayer,
+                nextScore);
+
+        // Traiter les entrées
+        boolean rightNow = keyboard.isKeyPressed(KeyCode.RIGHT);
+        boolean leftNow = keyboard.isKeyPressed(KeyCode.LEFT);
+        boolean upNow = keyboard.isKeyPressed(KeyCode.UP);
+        boolean downNow = keyboard.isKeyPressed(KeyCode.DOWN);
+        boolean enterNow = keyboard.isKeyPressed(KeyCode.ENTER) || keyboard.isKeyPressed(KeyCode.Z);
+
+        // Traiter les changements de position
+        nameInputRenderer.handleKeyPress(rightNow, rightPrev, leftNow, leftPrev, upNow, upPrevInput, downNow,
+                downPrevInput);
+
+        // Validation
+        if ((enterNow && !enterPrev) || nameInputRenderer.isValidated()) {
+            String playerName = nameInputRenderer.getPlayerName();
+            int position = ScoreManager.saveScore(SCORES_FILE, playerName, finalScore);
+            if (position == -1) {
+                // on force l'enregistrement même si pas qualifiant
+                position = ScoreManager.forceSaveScore(SCORES_FILE, playerName, finalScore);
+            }
+
+            // Créer le fichier highscore pour la borne
+            createBorneScoreFile();
+
+            // Retourner au menu
+            gameState = GameState.MENU;
+            menuSelection = 0;
+            nameInputRenderer = null;
+        }
+
+        rightPrev = rightNow;
+        leftPrev = leftNow;
+        upPrevInput = upNow;
+        downPrevInput = downNow;
+        enterPrev = enterNow;
+    }
+
+    private void handleHighscoresInput() {
+        boolean enterNow = keyboard.isKeyPressed(KeyCode.ENTER) || keyboard.isKeyPressed(KeyCode.Z);
+        if (enterNow && !enterPrev) {
+            gameState = GameState.MENU;
+            menuSelection = 1; // position on highscores option when returning
+        }
+        enterPrev = enterNow;
+    }
+
     private void handleGameOverMenuInput() {
         boolean upNow = keyboard.isKeyPressed(KeyCode.UP);
         boolean downNow = keyboard.isKeyPressed(KeyCode.DOWN);
         boolean enterNow = keyboard.isKeyPressed(KeyCode.ENTER) || keyboard.isKeyPressed(KeyCode.Z);
 
+        // three options: 0=save,1=replay,2=quit
         if (upNow && !upPrev) {
-            menuSelection = (menuSelection - 1 + 2) % 2;
+            menuSelection = (menuSelection - 1 + 3) % 3;
         }
         if (downNow && !downPrev) {
-            menuSelection = (menuSelection + 1) % 2;
+            menuSelection = (menuSelection + 1) % 3;
         }
         if (enterNow && !enterPrev) {
             if (menuSelection == 0) {
+                // Force save immediately even without name, then show highscores
+                // Use empty name when no name provided
+                String forcedName = "";
+                int position = ScoreManager.forceSaveScore(SCORES_FILE, forcedName, finalScore);
+                // ensure borne file is updated
+                createBorneScoreFile();
+                // show highscores after saving
+                gameState = GameState.HIGHSCORES;
+            } else if (menuSelection == 1) {
                 startNewGame();
             } else {
                 System.exit(0);
@@ -275,12 +391,16 @@ public class App extends Application {
         creator.create(
                 new Spawner(1, 0, 0, 1550, 850),
                 new PenaltySpawnType());
+        creator.create(
+                new Spawner(5, 0, 0, 1550, 850),
+                new HourglassSpawnType());
 
         // Register systems
         world.addSystem(new SimpleBoxSpawnerSystem(Color.GOLDENROD));
         world.addSystem(new MovingboxSpawnerSystem(Color.DARKBLUE));
         world.addSystem(new SlimeBoxSpawnerSystem(Color.LIGHTBLUE));
         world.addSystem(new PenaltySpawnerSystem(Color.PURPLE));
+        world.addSystem(new HourglassSpawnerSystem());
         BulletCollisionSystem bulletCollisionSystem = new BulletCollisionSystem();
         world.addSystem(bulletCollisionSystem);
         world.addSystem(new VelocitySystem());
@@ -296,11 +416,42 @@ public class App extends Application {
         SlimeListener slimeListener = new SlimeListener(world);
         targetDestroyedSignal.add(slimeListener);
 
+        // Hourglass time bonus
+        hourglassListener = new HourglassListener(() -> {
+            addTimeBonus(hourglassListener.getTimeBonus());
+        });
+        targetDestroyedSignal.add(hourglassListener);
+
         AlphaDecaySystem alphaSystem = new AlphaDecaySystem();
         world.addEntityListener(Family.all(Target.class).get(), alphaSystem);
         world.addSystem(alphaSystem);
         world.addSystem(new BoxShapeRenderer(canvas));
         world.addSystem(new CircleShapeRenderer(canvas));
+    }
+
+    /**
+     * Crée le fichier de scores pour la borne d'arcade.
+     * Copie le fichier de scores du jeu vers le répertoire de la borne.
+     */
+    private void createBorneScoreFile() {
+        try {
+            String gameScoreFile = SCORES_FILE;
+            String borneScoreFile = "../../../projet/TP-Jeu-NodeBuster-main/highscore";
+
+            java.nio.file.Path sourcePath = java.nio.file.Paths.get(gameScoreFile);
+            java.nio.file.Path targetPath = java.nio.file.Paths.get(borneScoreFile);
+
+            if (java.nio.file.Files.exists(sourcePath)) {
+                // Créer les répertoires parents s'ils n'existent pas
+                java.nio.file.Files.createDirectories(targetPath.getParent());
+
+                // Copier le fichier
+                java.nio.file.Files.copy(sourcePath, targetPath,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (Exception e) {
+            System.err.println("Erreur lors de la création du fichier de scores pour la borne: " + e.getMessage());
+        }
     }
 
     public static void main(String[] args) {
