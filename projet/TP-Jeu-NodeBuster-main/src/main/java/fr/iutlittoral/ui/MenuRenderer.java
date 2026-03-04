@@ -125,7 +125,7 @@ public class MenuRenderer {
                 canvas.getWidth() / 2 - 600,
                 y, 1200);
         y += lineHeight * 1.5;
-        drawWrappedText(gc, "• Objectif : atteindre 300 points en 60 secondes pour GAGNER !",
+        drawWrappedText(gc, "• Objectif : atteindre 150 points en 60 secondes pour GAGNER !",
                 canvas.getWidth() / 2 - 600, y, 1200);
         y += lineHeight;
         drawWrappedText(gc, "• Minimum 100 points pour ne pas perdre au temps écoulé.", canvas.getWidth() / 2 - 600, y,

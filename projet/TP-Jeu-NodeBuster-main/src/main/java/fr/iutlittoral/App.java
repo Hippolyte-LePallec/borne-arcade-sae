@@ -44,7 +44,7 @@ public class App extends Application {
     private boolean enterPrev = false;
     private boolean upPrev = false;
     private boolean downPrev = false;
-    private static final int WIN_SCORE = 300;
+    private static final int WIN_SCORE = 150;
     private static final int MIN_SCORE = 100;
     private static final long TIME_LIMIT_SECONDS = 60;
     // CURSOR: size is defined in Cursor.SIZE to avoid sprinkling magic numbers
