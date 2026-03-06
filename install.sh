@@ -86,7 +86,7 @@ install_system_packages() {
     section "Mise à jour des paquets système"
     
     log "Mise à jour des listes de paquets..."
-    apt-get update -qq
+    apt-get update -qq || warn "Échec de la mise à jour des paquets"
     
     log "Installation des dépendances système..."
     apt-get install -y \
@@ -107,6 +107,18 @@ install_system_packages() {
         libgl1-mesa-glx \
         libglu1-mesa \
         2>&1 | grep -v "already" | grep -v "is already" || true
+    
+    # Vérification spécifique de Java
+    if ! command -v java &> /dev/null; then
+        warn "Java n'a pas été installé correctement"
+        apt-get install -y openjdk-17-jdk || apt-get install -y openjdk-11-jdk || die "Impossible d'installer Java"
+    fi
+    
+    if command -v java &> /dev/null; then
+        ok "Java détecté ✓"
+    else
+        die "Java n'est toujours pas installé"
+    fi
     
     ok "Paquets système installés ✓"
 }
@@ -182,7 +194,12 @@ compile_borne_arcade() {
     
     log "Compilation en cours..."
     
-    cd "$BASE/borne_arcade" || die "Impossible d'accéder à $BASE/borne_arcade"
+    # Vérifie que MG2D est bien installé avant de compiler
+    if ! sudo -u "$REAL_USER" bash -c "mvn dependency:get -Dartifact=fr.iutlittoral:MG2D:1.0 -q 2>/dev/null"; then
+        warn "MG2D semble ne pas être installé dans le dépôt Maven local"
+        warn "Tentative de réinstallation..."
+        setup_mg2d
+    fi
     
     # Essaie le script de compilation s'il existe
     if [ -f "Script/compilation.sh" ]; then
@@ -201,10 +218,32 @@ compile_borne_arcade() {
     if [ -z "$jar_found" ]; then
         log "Utilisation de Maven pour la compilation..."
         log "Cela peut prendre quelques minutes..."
-        sudo -u "$REAL_USER" bash -c "
+        
+        # Capture la sortie complète de Maven pour diagnostiquer les erreurs
+        local maven_output
+        maven_output=$(sudo -u "$REAL_USER" bash -c "
             cd '$BASE/borne_arcade'
-            mvn --batch-mode clean package -DskipTests
-        " || die "La compilation Maven de borne_arcade a échoué. Vérifiez les erreurs ci-dessus."
+            mvn --batch-mode clean package -DskipTests 2>&1
+        ")
+        local maven_exit_code=$?
+        
+        # Affiche toujours la sortie Maven (succès ou échec)
+        echo "$maven_output"
+        
+        if [ $maven_exit_code -ne 0 ]; then
+            echo ""
+            warn "❌ COMPILATION MAVEN ÉCHOUÉE"
+            warn "Sortie complète ci-dessus. Erreurs communes:"
+            warn "  - Problème réseau (dépendances Maven)"
+            warn "  - Java version incompatible"
+            warn "  - Erreurs de compilation dans le code"
+            warn "  - MG2D non installé correctement"
+            echo ""
+            warn "Pour diagnostiquer:"
+            warn "  cd $BASE/borne_arcade"
+            warn "  mvn clean package -X  # Mode debug"
+            die "Compilation Maven échouée. Code de sortie: $maven_exit_code"
+        fi
     fi
     
     # Vérifie que le JAR a bien été créé
