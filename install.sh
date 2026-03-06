@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# install.sh - POUR RASPBERRY PI (ARM) - DEFAULT JDK
+# install.sh - VERSION RASPBERRY PI (ARM) - CORRECTIF DÉFINITIF
 # =============================================================================
 
 set -e
@@ -32,119 +32,130 @@ REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 BASE="$REAL_HOME/git"
 LOCAL_BIN="/usr/local/bin"
 
-# ─── 1. Mise à jour des dépôts ────────────────────────────────────────────────
-check_dependencies() {
-    section "Mise à jour du système"
+# ─── 1. Mise à jour et Nettoyage ──────────────────────────────────────────────
+prepare_system() {
+    section "Préparation du système"
+    log "Mise à jour des listes de paquets..."
     apt-get update -qq
     ok "Dépôts mis à jour"
 }
 
-# ─── 2. Installation de Java (DEFAULT-JDK) et Maven ──────────────────────────
-install_system_packages() {
-    section "Installation des paquets système"
+# ─── 2. Installation de Java (DEFAULT-JDK) et Dépendances ─────────────────────
+install_packages() {
+    section "Installation des dépendances"
     
-    log "Installation du JDK par défaut et de Maven..."
-    # Utilisation de default-jdk pour une compatibilité maximale avec l'OS
-    if apt-get install -y default-jdk maven git wget; then
-        ok "Java (default) et Maven installés avec succès ✓"
+    log "Installation de default-jdk (Java), Maven et Git..."
+    # On installe les paquets natifs du Raspberry Pi (ARM)
+    # default-jdk installe la version la plus stable pour votre version d'OS
+    apt-get install -y default-jdk maven git wget libx11-dev libxext-dev libxrender-dev libxtst-dev
+
+    if [ $? -eq 0 ]; then
+        ok "Installation des paquets réussie ✓"
     else
-        die "Échec de l'installation. Vérifiez votre connexion ou vos dépôts."
+        die "Erreur lors de l'installation des paquets via apt."
     fi
 
-    # Affichage de la version pour vérification
     java_version=$(java -version 2>&1 | head -n1)
-    ok "Version installée : $java_version"
+    ok "Java utilisé : $java_version"
 }
 
-# ─── 3. Préparation des répertoires ──────────────────────────────────────────
-setup_directories() {
-    section "Préparation des répertoires"
+# ─── 3. Gestion des Répertoires ──────────────────────────────────────────────
+setup_env() {
+    section "Configuration de l'environnement"
     mkdir -p "$BASE"
     chown "$REAL_USER:$REAL_USER" "$BASE"
-    log "Répertoire de travail : $BASE"
+    log "Base de travail : $BASE"
 }
 
-# ─── 4. Gestion des dépôts Git ───────────────────────────────────────────────
-clone_or_update() {
-    local repo_url=$1
-    local dir_name=$2
+# ─── 4. Clonage / Mise à jour des dépôts ──────────────────────────────────────
+sync_repos() {
+    section "Synchronisation des sources"
+    
+    # MG2D
     cd "$BASE"
-    if [ -d "$dir_name" ]; then
-        log "Mise à jour de $dir_name..."
-        cd "$dir_name" && sudo -u "$REAL_USER" git pull
+    if [ ! -d "MG2D" ]; then
+        log "Clonage de MG2D..."
+        sudo -u "$REAL_USER" git clone https://github.com/votre-repo/MG2D.git MG2D || warn "Lien MG2D à vérifier"
     else
-        log "Clonage de $dir_name..."
-        sudo -u "$REAL_USER" git clone "$repo_url" "$dir_name"
+        log "Mise à jour de MG2D..."
+        cd MG2D && sudo -u "$REAL_USER" git pull && cd ..
+    fi
+
+    # Borne Arcade
+    if [ ! -d "borne_arcade" ]; then
+        log "Clonage de la borne..."
+        sudo -u "$REAL_USER" git clone https://github.com/votre-repo/borne_arcade.git borne_arcade || warn "Lien borne_arcade à vérifier"
+    else
+        log "Mise à jour de la borne..."
+        cd borne_arcade && sudo -u "$REAL_USER" git pull && cd ..
     fi
 }
 
 # ─── 5. Compilation ──────────────────────────────────────────────────────────
-compile_projects() {
-    section "Compilation des projets"
+build() {
+    section "Compilation Maven"
     
-    # MG2D
+    # Compilation MG2D
     if [ -d "$BASE/MG2D" ]; then
-        log "Compilation de MG2D..."
+        log "Build MG2D..."
         cd "$BASE/MG2D"
-        sudo -u "$REAL_USER" mvn install -DskipTests
+        sudo -u "$REAL_USER" mvn clean install -DskipTests
+        ok "MG2D compilé et installé localement."
     fi
-    
-    # Borne Arcade
+
+    # Compilation Borne
     if [ -d "$BASE/borne_arcade" ]; then
-        log "Compilation de Borne Arcade..."
+        log "Build Borne Arcade..."
         cd "$BASE/borne_arcade"
         sudo -u "$REAL_USER" mvn clean install -DskipTests
-        ok "Compilations terminées ✓"
+        ok "Borne Arcade compilée."
     else
-        warn "Dossier borne_arcade introuvable, compilation sautée."
+        die "Dossier borne_arcade introuvable pour la compilation."
     fi
 }
 
-# ─── 6. Configuration du lancement automatique ───────────────────────────────
+# ─── 6. Lancement Automatique ────────────────────────────────────────────────
 setup_autostart() {
-    section "Configuration du lancement automatique"
-    
-    # Création du script de lancement rapide
+    section "Configuration de l'Autostart"
+
+    # Création du lanceur binaire
     cat <<EOF > "$LOCAL_BIN/borne-arcade"
 #!/bin/bash
 cd "$BASE/borne_arcade"
-mvn exec:java@borne
+exec mvn exec:java@borne
 EOF
     chmod +x "$LOCAL_BIN/borne-arcade"
 
-    # Création du dossier autostart pour l'utilisateur
-    mkdir -p "$REAL_HOME/.config/autostart"
+    # Création de l'entrée Desktop
+    local AUTOSTART_DIR="$REAL_HOME/.config/autostart"
+    sudo -u "$REAL_USER" mkdir -p "$AUTOSTART_DIR"
     
-    cat <<EOF > "$REAL_HOME/.config/autostart/borne.desktop"
+    cat <<EOF > "$AUTOSTART_DIR/borne.desktop"
 [Desktop Entry]
 Type=Application
 Name=Borne Arcade
 Exec=$LOCAL_BIN/borne-arcade
+Terminal=false
 X-GNOME-Autostart-enabled=true
 EOF
-    
-    chown -R "$REAL_USER:$REAL_USER" "$REAL_HOME/.config"
-    ok "Autostart configuré dans $REAL_HOME/.config/autostart ✓"
+    chown "$REAL_USER:$REAL_USER" "$AUTOSTART_DIR/borne.desktop"
+    ok "Le jeu se lancera automatiquement au démarrage de la session graphique."
 }
 
-# ─── Exécution principale ─────────────────────────────────────────────────────
+# ─── Exécution ────────────────────────────────────────────────────────────────
 main() {
-    check_dependencies
-    install_system_packages
-    setup_directories
-    
-    # --- DECOMMENTER ET MODIFIER LES URLS CI-DESSOUS ---
-    # clone_or_update "https://github.com/votre-compte/MG2D.git" "MG2D"
-    # clone_or_update "https://github.com/votre-compte/borne_arcade.git" "borne_arcade"
-    
-    compile_projects
+    prepare_system
+    install_packages
+    setup_env
+    sync_repos
+    build
     setup_autostart
-    
+
     if [ "$NO_RUN" = false ]; then
-        section "Lancement de la borne..."
+        section "Lancement immédiat..."
         sudo -u "$REAL_USER" "$LOCAL_BIN/borne-arcade"
     else
-        ok "Installation terminée (sans lancement)."
+        ok "Installation terminée avec succès ! Redémarrez ou tapez 'borne-arcade' pour lancer."
     fi
 }
 
