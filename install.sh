@@ -31,32 +31,30 @@ REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 BASE="$REAL_HOME/git"
 LOCAL_BIN="/usr/local/bin"
-# Chemin vers le sous-projet contenant le pom.xml
-BORNE_PROJECT="$BASE/borne_arcade/projet/NodeBuster"
 
-# ─── 1. Mise à jour et Nettoyage ──────────────────────────────────────────────
+# ─── 1. Préparation du système ──────────────────────────────────────────────
 prepare_system() {
     section "Préparation du système"
-    log "Mise à jour des listes de paquets..."
+    log "Mise à jour des dépôts..."
     apt-get update -qq
-    ok "Dépôts mis à jour"
 }
 
 # ─── 2. Installation de Java (DEFAULT-JDK) et Dépendances ─────────────────────
 install_packages() {
-    section "Installation des dépendances"
+    section "Installation des dépendances ARM"
     
-    log "Installation de default-jdk (Java), Maven et Git..."
+    log "Installation de Java (version système), Maven et Git..."
+    # On installe les paquets natifs du Raspberry Pi
     apt-get install -y default-jdk maven git wget libx11-dev libxext-dev libxrender-dev libxtst-dev
 
     if [ $? -eq 0 ]; then
         ok "Installation des paquets réussie ✓"
     else
-        die "Erreur lors de l'installation des paquets via apt."
+        die "Erreur lors de l'installation via apt-get."
     fi
 
     java_version=$(java -version 2>&1 | head -n1)
-    ok "Java utilisé : $java_version"
+    ok "Java actif : $java_version"
 }
 
 # ─── 3. Gestion des Répertoires ──────────────────────────────────────────────
@@ -64,28 +62,29 @@ setup_env() {
     section "Configuration de l'environnement"
     mkdir -p "$BASE"
     chown "$REAL_USER:$REAL_USER" "$BASE"
-    log "Base de travail : $BASE"
 }
 
-# ─── 4. Clonage / Mise à jour des dépôts ──────────────────────────────────────
+# ─── 4. Synchronisation des projets Git ──────────────────────────────────────
 sync_repos() {
     section "Synchronisation des sources"
     
-    # MG2D
     cd "$BASE"
+
+    # MG2D
     if [ ! -d "MG2D" ]; then
         log "Clonage de MG2D..."
-        sudo -u "$REAL_USER" git clone https://github.com/synave/MG2D.git MG2D || warn "Lien MG2D à vérifier"
+        # REMPLACEZ PAR VOTRE LIEN REEL SI NECESSAIRE
+        sudo -u "$REAL_USER" git clone https://github.com/MG2D/MG2D.git MG2D || warn "Lien MG2D inaccessible"
     else
         log "Mise à jour de MG2D..."
         cd MG2D && sudo -u "$REAL_USER" git pull && cd ..
     fi
 
     # Borne Arcade
-    cd "$BASE"
     if [ ! -d "borne_arcade" ]; then
-        log "Clonage de la borne..."
-        sudo -u "$REAL_USER" git clone https://github.com/Hippolyte-LePallec/borne-arcade-sae.git borne_arcade || warn "Lien borne_arcade à vérifier"
+        log "Clonage de borne_arcade..."
+        # REMPLACEZ PAR VOTRE LIEN REEL SI NECESSAIRE
+        sudo -u "$REAL_USER" git clone https://github.com/votre-compte/borne_arcade.git borne_arcade || warn "Lien borne_arcade inaccessible"
     else
         log "Mise à jour de la borne..."
         cd borne_arcade && sudo -u "$REAL_USER" git pull && cd ..
@@ -96,25 +95,21 @@ sync_repos() {
 build() {
     section "Compilation Maven"
     
-    # Compilation MG2D
+    # Compilation MG2D (nécessaire pour la borne)
     if [ -d "$BASE/MG2D" ]; then
-        log "Build MG2D..."
+        log "Installation locale de MG2D..."
         cd "$BASE/MG2D"
         sudo -u "$REAL_USER" mvn clean install -DskipTests
-        ok "MG2D compilé et installé localement."
     fi
 
-    # Compilation Borne Arcade
-    # Le pom.xml se trouve dans le sous-dossier projet/NodeBuster/
-    if [ -d "$BORNE_PROJECT" ]; then
-        log "Build Borne Arcade (dans projet/NodeBuster)..."
-        cd "$BORNE_PROJECT"
+    # Compilation Borne
+    if [ -d "$BASE/borne_arcade" ]; then
+        log "Build de la Borne Arcade..."
+        cd "$BASE/borne_arcade"
         sudo -u "$REAL_USER" mvn clean install -DskipTests
-        ok "Borne Arcade compilée."
-    elif [ -d "$BASE/borne_arcade" ]; then
-        die "Dossier borne_arcade trouvé, mais 'projet/NodeBuster/pom.xml' est introuvable. Vérifiez la structure du dépôt."
+        ok "Compilation terminée ✓"
     else
-        die "Dossier borne_arcade introuvable pour la compilation."
+        die "Dossier borne_arcade introuvable."
     fi
 }
 
@@ -122,15 +117,15 @@ build() {
 setup_autostart() {
     section "Configuration de l'Autostart"
 
-    # Création du lanceur binaire — pointe vers le bon sous-dossier
+    # Wrapper binaire
     cat <<EOF > "$LOCAL_BIN/borne-arcade"
 #!/bin/bash
-cd "$BORNE_PROJECT"
+cd "$BASE/borne_arcade"
 exec mvn exec:java@borne
 EOF
     chmod +x "$LOCAL_BIN/borne-arcade"
 
-    # Création de l'entrée Desktop
+    # Entrée Desktop pour la session graphique
     local AUTOSTART_DIR="$REAL_HOME/.config/autostart"
     sudo -u "$REAL_USER" mkdir -p "$AUTOSTART_DIR"
     
@@ -143,7 +138,6 @@ Terminal=false
 X-GNOME-Autostart-enabled=true
 EOF
     chown "$REAL_USER:$REAL_USER" "$AUTOSTART_DIR/borne.desktop"
-    ok "Le jeu se lancera automatiquement au démarrage de la session graphique."
 }
 
 # ─── Exécution ────────────────────────────────────────────────────────────────
@@ -156,10 +150,10 @@ main() {
     setup_autostart
 
     if [ "$NO_RUN" = false ]; then
-        section "Lancement immédiat..."
+        section "Lancement..."
         sudo -u "$REAL_USER" "$LOCAL_BIN/borne-arcade"
     else
-        ok "Installation terminée avec succès ! Redémarrez ou tapez 'borne-arcade' pour lancer."
+        ok "Installation terminée. Tapez 'borne-arcade' pour jouer !"
     fi
 }
 
