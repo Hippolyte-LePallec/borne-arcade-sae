@@ -28,12 +28,14 @@ public class ScoreManager {
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(":");
+                // Modification ici : on sépare par le tiret
+                String[] parts = line.split("-");
                 if (parts.length == 2) {
-                    scores.add(new ScoreLine(parts[0], Integer.parseInt(parts[1])));
+                    scores.add(new ScoreLine(parts[0].trim(), Integer.parseInt(parts[1].trim())));
                 }
             }
         } catch (Exception e) {
+            e.printStackTrace();
         }
         Collections.sort(scores);
         return scores;
@@ -49,7 +51,8 @@ public class ScoreManager {
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
             for (ScoreLine s : scores) {
-                bw.write(s.playerName + ":" + s.score);
+                // On écrit bien avec un tiret
+                bw.write(s.playerName + "-" + s.score);
                 bw.newLine();
             }
         } catch (IOException e) {

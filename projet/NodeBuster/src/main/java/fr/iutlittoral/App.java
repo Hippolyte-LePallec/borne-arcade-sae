@@ -50,7 +50,7 @@ public class App extends Application {
     private boolean upPrev = false;
     private boolean downPrev = false;
     private static final int INITIAL_TIME_SECONDS = 30;
-    private static final String SCORES_FILE = "nodebusters_scores.txt";
+    private static final String SCORES_FILE = "highscore";
     // CURSOR: size is defined in Cursor.SIZE to avoid sprinkling magic numbers
     private long gameStartTimeMs = 0;
     private float remainingTimeSeconds = INITIAL_TIME_SECONDS; // Temps dynamique qui change avec les sabliers

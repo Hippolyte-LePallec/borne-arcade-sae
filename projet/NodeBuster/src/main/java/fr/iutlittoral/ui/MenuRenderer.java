@@ -98,7 +98,7 @@ public class MenuRenderer {
             for (int i = 0; i < Math.min(10, scores.size()); i++) {
                 ScoreManager.ScoreLine s = scores.get(i);
                 String name = (s.playerName == null || s.playerName.trim().isEmpty()) ? "(anonyme)" : s.playerName;
-                String line = String.format("%2d. %s :  %d", i + 1, name, s.score);
+                String line = String.format("%2d. %s -  %d", i + 1, name, s.score);
                 gc.fillText(line, canvas.getWidth() / 2 - 300, y + i * 36);
             }
         }
