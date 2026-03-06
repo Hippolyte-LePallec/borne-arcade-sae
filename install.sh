@@ -66,12 +66,16 @@ check_dependencies() {
         return 1
     fi
     
-    # Vérifie la version de Java
-    java_version=$(java -version 2>&1 | grep -oP 'version "\K[0-9]+')
-    if [ "$java_version" -lt 8 ]; then
-        warn "Java 8+ recommandé, trouvé : Java $java_version"
-    else
+    # Vérifie la version de Java (compatible avec grep BSD et GNU)
+    java_version=$(java -version 2>&1 | grep 'version' | sed 's/.*version "\([0-9]*\).*/\1/' | head -n1)
+    if [ -z "$java_version" ]; then
+        java_version=$(java -version 2>&1 | grep 'version' | grep -o '[0-9][0-9]*' | head -n1)
+    fi
+    
+    if [ -n "$java_version" ] && [ "$java_version" -ge 17 ]; then
         ok "Java $java_version détecté ✓"
+    else
+        warn "Java 8+ recommandé"
     fi
     
     ok "Dépendances vérifiées ✓"
@@ -86,7 +90,7 @@ install_system_packages() {
     
     log "Installation des dépendances système..."
     apt-get install -y \
-        openjdk-17-jdk \
+        openjdk-11-jdk \
         git \
         maven \
         build-essential \
@@ -178,32 +182,53 @@ compile_borne_arcade() {
     
     log "Compilation en cours..."
     
-    if [ -f "$BASE/borne_arcade/Script/compilation.sh" ]; then
+    cd "$BASE/borne_arcade" || die "Impossible d'accéder à $BASE/borne_arcade"
+    
+    # Essaie le script de compilation s'il existe
+    if [ -f "Script/compilation.sh" ]; then
         log "Utilisation du script de compilation fourni..."
         sudo -u "$REAL_USER" bash -c "
             cd '$BASE/borne_arcade'
             chmod +x Script/compilation.sh
-            bash Script/compilation.sh 2>&1 | tail -n10
-        " || die "Le script de compilation a échoué."
-    else
-        log "Utilisation de Maven directement..."
+            bash Script/compilation.sh
+        " && ok "Script de compilation réussi ✓" || warn "Le script de compilation a échoué, tentative Maven..."
+    fi
+    
+    # Cherche si un JAR existe déjà
+    local jar_found=$(find "$BASE/borne_arcade/target" -maxdepth 1 -name "*.jar" \
+          ! -name "*sources*" ! -name "*javadoc*" 2>/dev/null | head -n1)
+    
+    if [ -z "$jar_found" ]; then
+        log "Utilisation de Maven pour la compilation..."
+        log "Cela peut prendre quelques minutes..."
         sudo -u "$REAL_USER" bash -c "
             cd '$BASE/borne_arcade'
-            mvn --batch-mode clean package -DskipTests -q 2>&1 | grep -E '(BUILD|ERROR)' || true
-        " || die "La compilation Maven de borne_arcade a échoué."
+            mvn --batch-mode clean package -DskipTests
+        " || die "La compilation Maven de borne_arcade a échoué. Vérifiez les erreurs ci-dessus."
+    fi
+    
+    # Vérifie que le JAR a bien été créé
+    jar_found=$(find "$BASE/borne_arcade/target" -maxdepth 1 -name "*.jar" \
+          ! -name "*sources*" ! -name "*javadoc*" 2>/dev/null | head -n1)
+    
+    if [ -z "$jar_found" ]; then
+        warn "⚠ ATTENTION: Aucun JAR trouvé après compilation!"
+        log "Dossiers du projet:"
+        ls -la "$BASE/borne_arcade/target/" 2>/dev/null | tail -n10 || log "Le dossier target n'existe pas"
+        die "Impossible de créer le JAR. Vérifiez que le projet compile correctement."
     fi
     
     ok "borne_arcade compilé ✓"
+    ok "JAR créé: $jar_found"
 }
 
 # ─── 7. Configuration X11 et autostart ──────────────────────────────────────
 setup_autostart() {
     section "Configuration du lancement automatique (X11)"
     
-    local desktop_src="$BASE/borne_arcade/borne.desktop"
     local desktop_name="borne-arcade.desktop"
     
-    # Cherche le JAR à lancer
+    # Cherche le JAR à lancer (en tolérant son absence au premier lancement)
     local jar=$(find "$BASE/borne_arcade/target" -maxdepth 1 -name "*.jar" \
           ! -name "*sources*" ! -name "*javadoc*" 2>/dev/null | head -n1)
     
@@ -212,57 +237,47 @@ setup_autostart() {
               ! -name "*sources*" ! -name "*javadoc*" 2>/dev/null | head -n1)
     fi
     
+    # Si aucun JAR n'existe, créer un lanceur générique
     if [ -z "$jar" ]; then
-        warn "Aucun JAR trouvé. Skipping autostart setup."
-        return 0
+        warn "Aucun JAR trouvé (compilation en cours?). Configuration d'un lanceur générique."
+        jar="$BASE/borne_arcade/target/borne.jar"
     fi
     
-    # Copie le fichier .desktop original s'il existe
-    if [ -f "$desktop_src" ]; then
-        log "Installation de borne.desktop depuis le projet..."
-        cp "$desktop_src" "$DESKTOP_AUTOSTART/$desktop_name"
-        chmod 644 "$DESKTOP_AUTOSTART/$desktop_name"
-        ok "Desktop file copié dans $DESKTOP_AUTOSTART ✓"
-    else
-        log "Création d'un fichier .desktop personnalisé..."
-    fi
-    
-    # Crée/met à jour le .desktop dans X11 avec le JAR trouvé
+    # Crée le fichier .desktop dans /etc/xdg/autostart
     log "Installation du lanceur dans X11..."
     cat > "$DESKTOP_AUTOSTART/$desktop_name" <<DESK
 [Desktop Entry]
 Type=Application
 Name=Borne Arcade SAE
 Comment=Jeux d'arcade pour la borne
-Exec=sh -c 'DISPLAY=:0 java -jar $jar'
+Exec=sh -c 'DISPLAY=:0 java -jar $jar 2>/dev/null'
 Icon=application-x-executable
 Terminal=false
 Categories=Game;
 X-GNOME-Autostart-enabled=true
 X-GNOME-Autostart-Delay=3
-StartupNotify=true
+StartupNotify=false
 DESK
     
     chmod 644 "$DESKTOP_AUTOSTART/$desktop_name"
     ok "Lanceur X11 configuré : $DESKTOP_AUTOSTART/$desktop_name ✓"
     
-    # Crée également un wrapper shell dans /usr/local/bin pour plus de flexibilité
+    # Crée le wrapper shell dans /usr/local/bin pour plus de flexibilité
     log "Création d'un script de lancement dans $LOCAL_BIN..."
     cat > "$LOCAL_BIN/borne-arcade" <<'LAUNCHER'
 #!/bin/bash
 # Script wrapper pour lancer la borne arcade
 set -e
 
-# Alternative Java versions
 JAR_PATH=""
 
 # Essaie plusieurs chemins possibles
 for path in \
-    "$HOME/git/borne_arcade/target/"*.jar \
+    "$HOME/git/borne_arcade/target"/*.jar \
     "/opt/borne/borne.jar" \
     "/usr/local/share/borne/borne.jar"
 do
-    if [ -f "$path" ] && ! [[ "$path" == *"sources"* ]] && ! [[ "$path" == *"javadoc"* ]]; then
+    if [ -f "$path" ] 2>/dev/null && ! [[ "$path" == *"sources"* ]] && ! [[ "$path" == *"javadoc"* ]]; then
         JAR_PATH="$path"
         break
     fi
@@ -270,6 +285,7 @@ done
 
 if [ -z "$JAR_PATH" ]; then
     echo "❌ Erreur : Aucun JAR trouvé pour la borne arcade."
+    echo "   Essayez : mvn clean package dans $HOME/git/borne_arcade"
     exit 1
 fi
 
@@ -296,41 +312,42 @@ launch_borne() {
         return 0
     fi
     
-    # Détermine le JAR à lancer
     local jar
+    
+    # Essaie d'abord le script run.sh s'il existe
     if [ -f "$BASE/borne_arcade/Script/run.sh" ]; then
         log "Utilisation du script de lancement fourni..."
         sudo -u "$REAL_USER" bash -c "
             cd '$BASE/borne_arcade'
             export DISPLAY=:0
             bash Script/run.sh
-        "
-        return $?
-    else
-        jar=$(find "$BASE/borne_arcade/target" -maxdepth 1 -name "*.jar" \
-              ! -name "*sources*" ! -name "*javadoc*" 2>/dev/null | head -n1)
-        
-        if [ -z "$jar" ]; then
-            jar=$(find "$BASE/borne_arcade" -name "*.jar" \
-                  ! -name "*sources*" ! -name "*javadoc*" 2>/dev/null | head -n1)
-        fi
-        
-        if [ -z "$jar" ]; then
-            die "Aucun JAR trouvé pour le lancement."
-        fi
-        
-        log "Lancement du JAR : $jar"
-        
-        # Lance en tant qu'utilisateur normal avec l'affichage X
-        local display="${DISPLAY:-:0}"
-        
-        ok "▶ Démarrage de la borne arcade..."
-        sudo -u "$REAL_USER" bash -c "
-            export DISPLAY='$display'
-            export SDL_VIDEODRIVER=x11
-            java -jar '$jar'
-        "
+        " && return 0
     fi
+    
+    # Sinon cherche le JAR dans le target
+    jar=$(find "$BASE/borne_arcade/target" -maxdepth 2 -name "*.jar" \
+          ! -name "*sources*" ! -name "*javadoc*" 2>/dev/null | head -n1)
+    
+    if [ -z "$jar" ]; then
+        die "❌ Erreur CRITIQUE: Aucun JAR trouvé!
+        
+Vérifiez:
+  1. Le dossier target existe: ls -la $BASE/borne_arcade/target
+  2. La compilation Maven: cd $BASE/borne_arcade && mvn clean package -X
+  3. Que le pom.xml définit bien le packaging 'jar'
+  
+Relancez le script après correction."
+    fi
+    
+    log "Lancement du JAR : $jar"
+    local display="${DISPLAY:-:0}"
+    
+    ok "▶ Démarrage de la borne arcade..."
+    sudo -u "$REAL_USER" bash -c "
+        export DISPLAY='$display'
+        export SDL_VIDEODRIVER=x11
+        java -jar '$jar'
+    " || warn "Impossible de lancer la borne (X11 probablement indisponible en SSH)"
 }
 
 # ─── 9. Aide et résumé ───────────────────────────────────────────────────────
@@ -396,5 +413,4 @@ main() {
 }
 
 # Exécute main
-
 main "$@"
