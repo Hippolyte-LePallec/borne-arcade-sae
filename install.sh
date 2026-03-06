@@ -31,6 +31,8 @@ REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 BASE="$REAL_HOME/git"
 LOCAL_BIN="/usr/local/bin"
+# Chemin vers le sous-projet contenant le pom.xml
+BORNE_PROJECT="$BASE/borne_arcade/projet/NodeBuster"
 
 # ─── 1. Mise à jour et Nettoyage ──────────────────────────────────────────────
 prepare_system() {
@@ -45,8 +47,6 @@ install_packages() {
     section "Installation des dépendances"
     
     log "Installation de default-jdk (Java), Maven et Git..."
-    # On installe les paquets natifs du Raspberry Pi (ARM)
-    # default-jdk installe la version la plus stable pour votre version d'OS
     apt-get install -y default-jdk maven git wget libx11-dev libxext-dev libxrender-dev libxtst-dev
 
     if [ $? -eq 0 ]; then
@@ -82,6 +82,7 @@ sync_repos() {
     fi
 
     # Borne Arcade
+    cd "$BASE"
     if [ ! -d "borne_arcade" ]; then
         log "Clonage de la borne..."
         sudo -u "$REAL_USER" git clone https://github.com/Hippolyte-LePallec/borne-arcade-sae.git borne_arcade || warn "Lien borne_arcade à vérifier"
@@ -103,12 +104,15 @@ build() {
         ok "MG2D compilé et installé localement."
     fi
 
-    # Compilation Borne
-    if [ -d "$BASE/borne_arcade" ]; then
-        log "Build Borne Arcade..."
-        cd "$BASE/borne_arcade"
+    # Compilation Borne Arcade
+    # Le pom.xml se trouve dans le sous-dossier projet/NodeBuster/
+    if [ -d "$BORNE_PROJECT" ]; then
+        log "Build Borne Arcade (dans projet/NodeBuster)..."
+        cd "$BORNE_PROJECT"
         sudo -u "$REAL_USER" mvn clean install -DskipTests
         ok "Borne Arcade compilée."
+    elif [ -d "$BASE/borne_arcade" ]; then
+        die "Dossier borne_arcade trouvé, mais 'projet/NodeBuster/pom.xml' est introuvable. Vérifiez la structure du dépôt."
     else
         die "Dossier borne_arcade introuvable pour la compilation."
     fi
@@ -118,10 +122,10 @@ build() {
 setup_autostart() {
     section "Configuration de l'Autostart"
 
-    # Création du lanceur binaire
+    # Création du lanceur binaire — pointe vers le bon sous-dossier
     cat <<EOF > "$LOCAL_BIN/borne-arcade"
 #!/bin/bash
-cd "$BASE/borne_arcade"
+cd "$BORNE_PROJECT"
 exec mvn exec:java@borne
 EOF
     chmod +x "$LOCAL_BIN/borne-arcade"
