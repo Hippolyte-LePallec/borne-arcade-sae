@@ -86,7 +86,7 @@ install_system_packages() {
     
     log "Installation des dépendances système..."
     apt-get install -y \
-        openjdk-11-jdk \
+        openjdk-17-jdk \
         git \
         maven \
         build-essential \
@@ -396,4 +396,5 @@ main() {
 }
 
 # Exécute main
+
 main "$@"
