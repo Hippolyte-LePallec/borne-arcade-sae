@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# install.sh - VERSION CORRIGÉE (STRUCTURE DE DOSSIERS & JAVA DEFAULT)
+# install.sh - VERSION RASPBERRY PI (ARM) - CIBLE UNIQUE NODEBUSTER
 # =============================================================================
 
 set -e
@@ -19,9 +19,6 @@ die()  { echo -e "${RED}[ERREUR]${NC} $*" >&2; exit 1; }
 section() { echo -e "\n${BLUE}━━━ $* ━━━${NC}\n"; }
 
 # ─── Configuration ───────────────────────────────────────────────────────────
-NO_RUN=false
-[ "$1" = "--no-run" ] && NO_RUN=true
-
 if [ "$EUID" -ne 0 ]; then
     die "Ce script doit être lancé avec sudo : sudo $0"
 fi
@@ -29,95 +26,80 @@ fi
 REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 BASE="$REAL_HOME/git"
+# Chemin exact vers NodeBuster d'après vos informations
+PATH_NODEBUSTER="$BASE/borne-arcade-sae/projet/NodeBuster"
 LOCAL_BIN="/usr/local/bin"
 
-# ─── 1. Préparation et Installation de Java Default ──────────────────────────
+# ─── 1. Préparation du système ──────────────────────────────────────────────
 prepare_system() {
     section "Installation des dépendances"
     apt-get update -qq
-    # Installation du JDK par défaut pour éviter les erreurs d'architecture ARM
+    # Installation du JDK par défaut (compatible ARM) et Maven
     apt-get install -y default-jdk maven git wget
-    ok "Java et Maven prêts."
+    ok "Système prêt avec Java $(java -version 2>&1 | head -n1)"
 }
 
-# ─── 2. Configuration des chemins (CORRECTIF) ────────────────────────────────
-setup_paths() {
-    section "Vérification des chemins"
-    
-    # Chemin vers MG2D (ajustez si MG2D est aussi dans un sous-dossier)
-    # Si le pom.xml de MG2D est dans git/MG2D/MG2D, changez ici :
-    PATH_MG2D="$BASE/MG2D" 
-    
-    # Chemin exact vers NodeBuster d'après votre message
-    PATH_NODEBUSTER="$BASE/borne-arcade-sae/projet/NodeBuster"
-
-    mkdir -p "$BASE"
-    chown "$REAL_USER:$REAL_USER" "$BASE"
-}
-
-# ─── 3. Compilation de MG2D ──────────────────────────────────────────────────
-compile_mg2d() {
-    section "Compilation de MG2D"
-    
-    if [ -d "$PATH_MG2D" ]; then
-        cd "$PATH_MG2D"
-        # Vérification de la présence du pom.xml
-        if [ -f "pom.xml" ]; then
-            log "Lancement de mvn install dans $PATH_MG2D"
-            sudo -u "$REAL_USER" mvn install -DskipTests
-            ok "MG2D installé dans le dépôt local."
-        else
-            die "Erreur : pom.xml introuvable dans $PATH_MG2D. Vérifiez l'emplacement exact de MG2D."
-        fi
-    else
-        log "Dossier MG2D absent, vérifiez le clonage."
-    fi
-}
-
-# ─── 4. Compilation de NodeBuster ─────────────────────────────────────────────
+# ─── 2. Compilation de NodeBuster ─────────────────────────────────────────────
 compile_nodebuster() {
-    section "Compilation de NodeBuster"
+    section "Compilation du projet NodeBuster"
     
     if [ -d "$PATH_NODEBUSTER" ]; then
         cd "$PATH_NODEBUSTER"
+        
+        # On vérifie si le pom.xml est présent ici
         if [ -f "pom.xml" ]; then
-            log "Compilation dans $PATH_NODEBUSTER"
+            log "Lancement de la compilation Maven dans : $PATH_NODEBUSTER"
+            # On lance en tant qu'utilisateur normal pour éviter les problèmes de droits
             sudo -u "$REAL_USER" mvn clean install -DskipTests
-            ok "NodeBuster compilé avec succès."
+            ok "NodeBuster a été compilé avec succès."
         else
-            die "Erreur : pom.xml introuvable dans $PATH_NODEBUSTER. Vérifiez le chemin."
+            die "ERREUR : Aucun fichier pom.xml trouvé dans $PATH_NODEBUSTER"
         fi
     else
-        die "Dossier $PATH_NODEBUSTER introuvable."
+        die "ERREUR : Le répertoire $PATH_NODEBUSTER n'existe pas."
     fi
 }
 
-# ─── 5. Configuration du lancement ───────────────────────────────────────────
+# ─── 3. Configuration du lancement ───────────────────────────────────────────
 setup_launcher() {
     section "Configuration du lanceur"
-    
-    # Création du script de commande
+
+    # Création d'un script de commande simple pour lancer le jeu n'importe où
     cat <<EOF > "$LOCAL_BIN/borne-arcade"
 #!/bin/bash
 cd "$PATH_NODEBUSTER"
-mvn exec:java@borne
+exec mvn exec:java@borne
 EOF
     chmod +x "$LOCAL_BIN/borne-arcade"
-    ok "Commande 'borne-arcade' créée."
+    
+    # Création du dossier autostart s'il n'existe pas
+    local AUTO_DIR="$REAL_HOME/.config/autostart"
+    sudo -u "$REAL_USER" mkdir -p "$AUTO_DIR"
+
+    # Fichier de lancement automatique pour l'interface graphique du Pi
+    cat <<EOF > "$AUTO_DIR/borne.desktop"
+[Desktop Entry]
+Type=Application
+Name=NodeBuster Arcade
+Exec=$LOCAL_BIN/borne-arcade
+Terminal=false
+EOF
+    chown "$REAL_USER:$REAL_USER" "$AUTO_DIR/borne.desktop"
+    
+    ok "Commande 'borne-arcade' créée et configurée pour le démarrage."
 }
 
-# ─── Main ────────────────────────────────────────────────────────────────────
+# ─── Exécution ────────────────────────────────────────────────────────────────
 main() {
     prepare_system
-    setup_paths
-    # compile_mg2d # Décommentez si MG2D doit être compilé à part
     compile_nodebuster
     setup_launcher
     
-    if [ "$NO_RUN" = false ]; then
-        section "Lancement de la borne"
-        sudo -u "$REAL_USER" "$LOCAL_BIN/borne-arcade"
-    fi
+    section "Installation terminée !"
+    log "Vous pouvez lancer le jeu avec la commande : borne-arcade"
+    
+    # Lancement automatique immédiat
+    sudo -u "$REAL_USER" "$LOCAL_BIN/borne-arcade"
 }
 
 main
