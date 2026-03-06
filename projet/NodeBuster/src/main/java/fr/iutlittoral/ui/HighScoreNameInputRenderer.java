@@ -88,7 +88,7 @@ public class HighScoreNameInputRenderer {
         if (!nextPlayer.isEmpty()) {
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 25));
             gc.setFill(TEXT_GRAY);
-            gc.fillText("Dessous : " + nextPlayer + " - " + nextScore, canvas.getWidth() / 2 - 250, 650);
+            gc.fillText("Dessous : " + nextPlayer + "       " + nextScore, canvas.getWidth() / 2 - 250, 650);
         }
 
         // Instructions

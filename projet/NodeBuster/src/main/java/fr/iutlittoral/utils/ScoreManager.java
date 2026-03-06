@@ -1,214 +1,64 @@
 package fr.iutlittoral.utils;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 
-/**
- * Gestionnaire de scores pour le jeu NodeBuster.
- * 
- * Permet de :
- * - Sauvegarder les scores dans un fichier
- * - Charger les scores existants
- * - Gérer le classement des highscores (top 10)
- * - Déterminer si un score est qualifiant
- */
 public class ScoreManager {
-
-    public static class ScoreLine {
+    public static class ScoreLine implements Comparable<ScoreLine> {
         public String playerName;
         public int score;
-        public long timestamp;
 
-        public ScoreLine(String playerName, int score, long timestamp) {
+        public ScoreLine(String playerName, int score) {
             this.playerName = playerName;
             this.score = score;
-            this.timestamp = timestamp;
-        }
-
-        public ScoreLine(String line) {
-            // Format: "NAME:SCORE:TIMESTAMP"
-            String[] parts = line.split(":");
-            if (parts.length >= 2) {
-                this.playerName = parts[0];
-                this.score = Integer.parseInt(parts[1]);
-                this.timestamp = parts.length > 2 ? Long.parseLong(parts[2]) : System.currentTimeMillis();
-            }
         }
 
         @Override
-        public String toString() {
-            return playerName + ":" + score + ":" + timestamp;
+        public int compareTo(ScoreLine o) {
+            return Integer.compare(o.score, this.score);
         }
     }
 
-    private static final String DEFAULT_SCORE_FILE = "nodebusters_scores.txt";
-    private static final int MAX_SCORES = 10;
-
-    /**
-     * Charge tous les scores depuis le fichier de highscores.
-     */
-    public static ArrayList<ScoreLine> loadScores(String filePath) {
+    public static ArrayList<ScoreLine> loadScores(String path) {
         ArrayList<ScoreLine> scores = new ArrayList<>();
-
-        try {
-            File file = new File(filePath);
-            if (!file.exists()) {
-                return scores;
-            }
-
-            BufferedReader reader = new BufferedReader(new FileReader(file));
+        File file = new File(path);
+        if (!file.exists())
+            return scores;
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
-            while ((line = reader.readLine()) != null) {
-                if (!line.trim().isEmpty()) {
-                    try {
-                        scores.add(new ScoreLine(line));
-                    } catch (Exception e) {
-                        System.err.println("Erreur lors du parsing de la ligne: " + line);
-                    }
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(":");
+                if (parts.length == 2) {
+                    scores.add(new ScoreLine(parts[0], Integer.parseInt(parts[1])));
                 }
             }
-            reader.close();
-
-            // Trier par score décroissant
-            Collections.sort(scores, new Comparator<ScoreLine>() {
-                @Override
-                public int compare(ScoreLine a, ScoreLine b) {
-                    return Integer.compare(b.score, a.score);
-                }
-            });
-
         } catch (Exception e) {
-            System.err.println("Erreur lors de la lecture du fichier de scores: " + e.getMessage());
         }
-
+        Collections.sort(scores);
         return scores;
     }
 
-    /**
-     * Sauvegarde un nouveau score et retourne sa position dans le classement.
-     * Retourne -1 si le score n'est pas qualifiant.
-     */
-    public static int saveScore(String filePath, String playerName, int score) {
-        ArrayList<ScoreLine> scores = loadScores(filePath);
+    public static int saveScore(String path, String name, int score) {
+        ArrayList<ScoreLine> scores = loadScores(path);
+        ScoreLine newEntry = new ScoreLine(name, score);
+        scores.add(newEntry);
+        Collections.sort(scores);
+        if (scores.size() > 10)
+            scores = new ArrayList<>(scores.subList(0, 10));
 
-        // Déterminer la position du nouveau score
-        int position = -1;
-        for (int i = 0; i < scores.size(); i++) {
-            if (score > scores.get(i).score) {
-                position = i;
-                break;
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(path))) {
+            for (ScoreLine s : scores) {
+                bw.write(s.playerName + ":" + s.score);
+                bw.newLine();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        // Si pas trouvé et il y a moins de 10 scores
-        if (position == -1 && scores.size() < MAX_SCORES) {
-            position = scores.size();
-        }
-
-        // Score non qualifiant
-        if (position == -1 || position >= MAX_SCORES) {
-            return -1;
-        }
-
-        // Insérer le nouveau score
-        scores.add(position, new ScoreLine(playerName, score, System.currentTimeMillis()));
-
-        // Garder seulement les 10 meilleurs
-        while (scores.size() > MAX_SCORES) {
-            scores.remove(scores.size() - 1);
-        }
-
-        // Sauvegarder dans le fichier
-        try {
-            File file = new File(filePath);
-            file.getParentFile().mkdirs(); // Créer les répertoires s'ils n'existent pas
-
-            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-            for (int i = 0; i < scores.size(); i++) {
-                writer.write(scores.get(i).toString());
-                if (i < scores.size() - 1) {
-                    writer.write("\n");
-                }
-            }
-            writer.close();
-        } catch (Exception e) {
-            System.err.println("Erreur lors de la sauvegarde des scores: " + e.getMessage());
-            return -1;
-        }
-
-        return position;
+        return scores.indexOf(newEntry);
     }
 
-    /**
-     * Retourne le score à atteindre pour la victoire.
-     */
-    public static int getWinScore() {
-        return 150;
-    }
-
-    /**
-     * Retourne le score minimum requis pour ne pas perdre.
-     */
-    public static int getMinScore() {
-        return 100;
-    }
-
-    /**
-     * Retourne la limite de temps en secondes.
-     */
-    public static long getTimeLimit() {
-        return 60;
-    }
-
-    /**
-     * Charge les 10 meilleurs scores.
-     */
-    public static ArrayList<ScoreLine> getTopScores(String filePath) {
-        return loadScores(filePath);
-    }
-
-    /**
-     * Sauvegarde un score en forçant son insertion même s'il n'est pas qualifiant.
-     * Renvoie la position dans le classement après tri (0..MAX_SCORES-1).
-     */
-    public static int forceSaveScore(String filePath, String playerName, int score) {
-        ArrayList<ScoreLine> scores = loadScores(filePath);
-        scores.add(new ScoreLine(playerName, score, System.currentTimeMillis()));
-        // tri décroissant
-        Collections.sort(scores, new Comparator<ScoreLine>() {
-            @Override
-            public int compare(ScoreLine a, ScoreLine b) {
-                return Integer.compare(b.score, a.score);
-            }
-        });
-        // trouver position
-        int position = scores.indexOf(scores.stream().filter(s -> s.playerName.equals(playerName) && s.score == score).findFirst().orElse(null));
-        // tronquer
-        while (scores.size() > MAX_SCORES) {
-            scores.remove(scores.size() - 1);
-        }
-        // sauvegarde
-        try {
-            File file = new File(filePath);
-            file.getParentFile().mkdirs();
-            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-            for (int i = 0; i < scores.size(); i++) {
-                writer.write(scores.get(i).toString());
-                if (i < scores.size() - 1) {
-                    writer.write("\n");
-                }
-            }
-            writer.close();
-        } catch (Exception e) {
-            System.err.println("Erreur lors de la sauvegarde des scores: " + e.getMessage());
-            return -1;
-        }
-        return position;
+    public static int forceSaveScore(String path, String name, int score) {
+        return saveScore(path, name, score);
     }
 }

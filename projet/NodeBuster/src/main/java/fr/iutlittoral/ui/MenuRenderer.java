@@ -98,7 +98,7 @@ public class MenuRenderer {
             for (int i = 0; i < Math.min(10, scores.size()); i++) {
                 ScoreManager.ScoreLine s = scores.get(i);
                 String name = (s.playerName == null || s.playerName.trim().isEmpty()) ? "(anonyme)" : s.playerName;
-                String line = String.format("%2d. %s - %d", i + 1, name, s.score);
+                String line = String.format("%2d. %s :  %d", i + 1, name, s.score);
                 gc.fillText(line, canvas.getWidth() / 2 - 300, y + i * 36);
             }
         }
@@ -156,7 +156,8 @@ public class MenuRenderer {
         y += lineHeight * 1.5;
         gc.setFont(Font.font("Arial", 18));
         gc.setFill(TEXT_WHITE);
-        drawWrappedText(gc, "• Boîtes DORÉES : +1 point | Boîtes ROUGE FONCÉ : +2 points", canvas.getWidth() / 2 - 600,
+        drawWrappedText(gc, "• Boîtes DORÉES : +1 point | Boîtes BLEUES FONCÉES : +2 points",
+                canvas.getWidth() / 2 - 600,
                 y,
                 1200);
         y += lineHeight;
@@ -167,11 +168,9 @@ public class MenuRenderer {
                 canvas.getWidth() / 2 - 600,
                 y, 1200);
         y += lineHeight * 1.5;
-        drawWrappedText(gc, "• Objectif : atteindre 150 points en 60 secondes pour GAGNER !",
+        drawWrappedText(gc,
+                "• Carre jaune clair : augmente le temps de maniere aleatoire entre 2 et 10 secondes en plus",
                 canvas.getWidth() / 2 - 600, y, 1200);
-        y += lineHeight;
-        drawWrappedText(gc, "• Minimum 100 points pour ne pas perdre au temps écoulé.", canvas.getWidth() / 2 - 600, y,
-                1200);
 
         // Consigne retour
         gc.setFont(Font.font("Arial", 20));

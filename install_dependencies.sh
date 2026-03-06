@@ -1,13 +1,8 @@
 #!/bin/bash
 
 # install_dependencies.sh
-# Script d'installation des dépendances nécessaires pour jouer
-# à tous les jeux de la borne d'arcade sur une fresh install de
-# Raspberry Pi OS (Raspbian).
-#
+# Script d'installation mis à jour pour Java 17
 # Usage : sudo ./install_dependencies.sh
-#          ou simplement ./install_dependencies.sh si l'utilisateur
-#          a les droits sudoers.
 
 set -e
 
@@ -16,12 +11,12 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-echo "Mise à jour des paquets..."
+echo "Mise à jour des dépôts..."
 apt-get update
 
-echo "Installation des paquets nécessaires : Java, Git, Maven, etc..."
+echo "Installation des paquets nécessaires (Java 17, Git, Maven...)"
 apt-get install -y \
-    openjdk-8-jdk \
+    openjdk-17-jdk \
     git \
     maven \
     x11-apps \
@@ -29,50 +24,54 @@ apt-get install -y \
     pulseaudio \
     alsa-utils
 
-# on peut ajouter d'autres bibliothèques si besoin
+# On s'assure que Java 17 est bien la version par défaut
+update-java-alternatives -s java-1.17.0-openjdk-$(dpkg --print-architecture) || true
 
-# création d'un répertoire git standard
+# Création d'un répertoire git standard
+# Note : $HOME en sudo peut pointer vers /root. 
+# Si tu veux l'installer pour l'utilisateur pi, il faudra ajuster le chemin.
 BASE="$HOME/git"
 mkdir -p "$BASE"
 cd "$BASE"
 
-# clonage de MG2D si absent
+# Clonage ou mise à jour de MG2D
 if [ ! -d "MG2D" ]; then
     echo "Clonage de la bibliothèque MG2D..."
     git clone http://iut.univ-littoral.fr/gitlab/synave/MG2D.git
 else
-    echo "Le répertoire MG2D existe déjà, mise à jour..."
+    echo "Mise à jour de MG2D..."
     cd MG2D && git pull && cd ..
 fi
 
-# clonage du projet borne_arcade si absent
+# Clonage ou mise à jour du projet borne_arcade
 if [ ! -d "borne_arcade" ]; then
     echo "Clonage du projet borne_arcade..."
     git clone http://iut.univ-littoral.fr/gitlab/synave/borne_arcade.git
 else
-    echo "Le répertoire borne_arcade existe déjà, mise à jour..."
+    echo "Mise à jour de borne_arcade..."
     cd borne_arcade && git pull && cd ..
 fi
 
-# installation du fichier .desktop pour démarrage automatique
-AUTOSTART_DIR="/etc/xdg/autostart"  # system-wide
+# Installation du fichier .desktop pour démarrage automatique
+AUTOSTART_DIR="/etc/xdg/autostart"
 if [ -f "$BASE/borne_arcade/borne.desktop" ]; then
     echo "Installation du lanceur dans $AUTOSTART_DIR"
+    mkdir -p "$AUTOSTART_DIR"
     cp "$BASE/borne_arcade/borne.desktop" "$AUTOSTART_DIR/"
 fi
 
+echo "-------------------------------------------------------"
+echo "Installation terminée avec Java 17."
+java -version
+echo "-------------------------------------------------------"
+
 cat <<'EOF'
 
-Installation terminée.
-
-Les dépôts MG2D et borne_arcade sont disponibles dans :
+Les dépôts sont prêts dans :
     $HOME/git/MG2D
     $HOME/git/borne_arcade
 
-Pour compiler et lancer la borne :
+Prochaines étapes :
     cd ~/git/borne_arcade
     ./Script/compilation.sh
-    # ou lancez le menu avec java comme indiqué dans README
-
-Vous pouvez redémarrer la machine pour que le menu se lance automatiquement.
 EOF

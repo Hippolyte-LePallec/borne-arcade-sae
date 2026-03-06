@@ -15,6 +15,7 @@ import fr.iutlittoral.systems.spawners.PenaltySpawnerSystem;
 import fr.iutlittoral.systems.spawners.HourglassSpawnerSystem;
 import fr.iutlittoral.ui.MenuRenderer;
 import fr.iutlittoral.ui.HighScoreNameInputRenderer;
+import fr.iutlittoral.systems.Score;
 import fr.iutlittoral.utils.*;
 import fr.iutlittoral.components.Cursor;
 import javafx.application.Application;
@@ -68,6 +69,7 @@ public class App extends Application {
     private boolean upPrevInput = false;
     private boolean downPrevInput = false;
     private HourglassListener hourglassListener;
+    private Score scoreSystem = new Score();
 
     @Override
     public void start(Stage stage) {
