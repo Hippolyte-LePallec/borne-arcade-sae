@@ -75,7 +75,7 @@ sync_repos() {
     cd "$BASE"
     if [ ! -d "MG2D" ]; then
         log "Clonage de MG2D..."
-        sudo -u "$REAL_USER" git clone https://github.com/votre-repo/MG2D.git MG2D || warn "Lien MG2D à vérifier"
+        sudo -u "$REAL_USER" git clone https://github.com/synave/MG2D.git MG2D || warn "Lien MG2D à vérifier"
     else
         log "Mise à jour de MG2D..."
         cd MG2D && sudo -u "$REAL_USER" git pull && cd ..
@@ -84,7 +84,7 @@ sync_repos() {
     # Borne Arcade
     if [ ! -d "borne_arcade" ]; then
         log "Clonage de la borne..."
-        sudo -u "$REAL_USER" git clone https://github.com/votre-repo/borne_arcade.git borne_arcade || warn "Lien borne_arcade à vérifier"
+        sudo -u "$REAL_USER" git clone https://github.com/Hippolyte-LePallec/borne-arcade-sae.git borne_arcade || warn "Lien borne_arcade à vérifier"
     else
         log "Mise à jour de la borne..."
         cd borne_arcade && sudo -u "$REAL_USER" git pull && cd ..
