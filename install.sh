@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# install.sh - VERSION CORRIGÉE POUR RASPBERRY PI
+# install.sh - VERSION CORRIGÉE (STRUCTURE DE DOSSIERS & JAVA DEFAULT)
 # =============================================================================
 
 set -e
@@ -15,7 +15,6 @@ NC='\033[0m'
 
 log()  { echo -e "${CYAN}[INFO]${NC}  $*"; }
 ok()   { echo -e "${GREEN}[OK]${NC}    $*"; }
-warn() { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 die()  { echo -e "${RED}[ERREUR]${NC} $*" >&2; exit 1; }
 section() { echo -e "\n${BLUE}━━━ $* ━━━${NC}\n"; }
 
@@ -32,91 +31,91 @@ REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 BASE="$REAL_HOME/git"
 LOCAL_BIN="/usr/local/bin"
 
-# ─── 1. Préparation du système ──────────────────────────────────────────────
+# ─── 1. Préparation et Installation de Java Default ──────────────────────────
 prepare_system() {
-    section "Préparation du système"
-    log "Mise à jour des dépôts..."
+    section "Installation des dépendances"
     apt-get update -qq
+    # Installation du JDK par défaut pour éviter les erreurs d'architecture ARM
+    apt-get install -y default-jdk maven git wget
+    ok "Java et Maven prêts."
 }
 
-# ─── 2. Installation de Java (DEFAULT) et Dépendances ─────────────────────────
-# CORRECTION : Utilisation de default-jdk pour éviter les erreurs d'architecture
-install_system_packages() {
-    section "Installation des paquets système"
+# ─── 2. Configuration des chemins (CORRECTIF) ────────────────────────────────
+setup_paths() {
+    section "Vérification des chemins"
     
-    log "Installation du JDK par défaut et de Maven..."
-    if apt-get install -y default-jdk maven git wget; then
-        ok "Java (default) et Maven installés avec succès ✓"
-    else
-        die "Échec de l'installation des paquets système."
-    fi
+    # Chemin vers MG2D (ajustez si MG2D est aussi dans un sous-dossier)
+    # Si le pom.xml de MG2D est dans git/MG2D/MG2D, changez ici :
+    PATH_MG2D="$BASE/MG2D" 
+    
+    # Chemin exact vers NodeBuster d'après votre message
+    PATH_NODEBUSTER="$BASE/borne-arcade-sae/projet/NodeBuster"
 
-    # Vérification de la version active
-    java_version=$(java -version 2>&1 | head -n1)
-    ok "Utilisation de : $java_version"
-}
-
-# ─── 3. Préparation des répertoires ──────────────────────────────────────────
-setup_directories() {
-    section "Préparation des répertoires"
     mkdir -p "$BASE"
     chown "$REAL_USER:$REAL_USER" "$BASE"
 }
 
-# ─── 5. Compilation (CORRIGÉE) ───────────────────────────────────────────────
-# CORRECTION : Chemin mis à jour pour pointer vers le bon pom.xml
-compile_projects() {
-    section "Compilation des projets"
+# ─── 3. Compilation de MG2D ──────────────────────────────────────────────────
+compile_mg2d() {
+    section "Compilation de MG2D"
     
-    # 1. Compilation de MG2D (souvent requis par les autres projets)
-    if [ -d "$BASE/MG2D" ]; then
-        log "Compilation de MG2D..."
-        cd "$BASE/MG2D"
-        sudo -u "$REAL_USER" mvn install -DskipTests
-    fi
-    
-    # 2. Compilation de NodeBuster avec le chemin spécifique
-    # Chemin : $BASE/borne-arcade-sae/projet/NodeBuster/
-    local NODEBUSTER_PATH="$BASE/borne-arcade-sae/projet/NodeBuster"
-    
-    if [ -f "$NODEBUSTER_PATH/pom.xml" ]; then
-        log "Compilation de NodeBuster dans le bon dossier..."
-        cd "$NODEBUSTER_PATH"
-        sudo -u "$REAL_USER" mvn clean install -DskipTests
-        ok "NodeBuster compilé avec succès ✓"
+    if [ -d "$PATH_MG2D" ]; then
+        cd "$PATH_MG2D"
+        # Vérification de la présence du pom.xml
+        if [ -f "pom.xml" ]; then
+            log "Lancement de mvn install dans $PATH_MG2D"
+            sudo -u "$REAL_USER" mvn install -DskipTests
+            ok "MG2D installé dans le dépôt local."
+        else
+            die "Erreur : pom.xml introuvable dans $PATH_MG2D. Vérifiez l'emplacement exact de MG2D."
+        fi
     else
-        die "ERREUR : pom.xml introuvable dans $NODEBUSTER_PATH"
+        log "Dossier MG2D absent, vérifiez le clonage."
     fi
 }
 
-# ─── 6. Configuration du lancement automatique ───────────────────────────────
-setup_autostart() {
-    section "Configuration du lancement"
+# ─── 4. Compilation de NodeBuster ─────────────────────────────────────────────
+compile_nodebuster() {
+    section "Compilation de NodeBuster"
     
-    # Création du lanceur
+    if [ -d "$PATH_NODEBUSTER" ]; then
+        cd "$PATH_NODEBUSTER"
+        if [ -f "pom.xml" ]; then
+            log "Compilation dans $PATH_NODEBUSTER"
+            sudo -u "$REAL_USER" mvn clean install -DskipTests
+            ok "NodeBuster compilé avec succès."
+        else
+            die "Erreur : pom.xml introuvable dans $PATH_NODEBUSTER. Vérifiez le chemin."
+        fi
+    else
+        die "Dossier $PATH_NODEBUSTER introuvable."
+    fi
+}
+
+# ─── 5. Configuration du lancement ───────────────────────────────────────────
+setup_launcher() {
+    section "Configuration du lanceur"
+    
+    # Création du script de commande
     cat <<EOF > "$LOCAL_BIN/borne-arcade"
 #!/bin/bash
-cd "$BASE/borne-arcade-sae/projet/NodeBuster"
+cd "$PATH_NODEBUSTER"
 mvn exec:java@borne
 EOF
     chmod +x "$LOCAL_BIN/borne-arcade"
-    ok "Script de lancement créé dans $LOCAL_BIN/borne-arcade ✓"
+    ok "Commande 'borne-arcade' créée."
 }
 
 # ─── Main ────────────────────────────────────────────────────────────────────
 main() {
     prepare_system
-    install_system_packages
-    setup_directories
-    
-    # Assurez-vous que le dossier git contient bien borne-arcade-sae
-    # sync_repos (si vous avez une fonction de clonage)
-    
-    compile_projects
-    setup_autostart
+    setup_paths
+    # compile_mg2d # Décommentez si MG2D doit être compilé à part
+    compile_nodebuster
+    setup_launcher
     
     if [ "$NO_RUN" = false ]; then
-        log "Lancement de l'application..."
+        section "Lancement de la borne"
         sudo -u "$REAL_USER" "$LOCAL_BIN/borne-arcade"
     fi
 }
