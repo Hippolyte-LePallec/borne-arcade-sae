@@ -88,11 +88,66 @@ install_system_packages() {
     log "Mise à jour des listes de paquets..."
     apt-get update -qq || warn "Échec de la mise à jour des paquets"
     
-    log "Installation des dépendances système..."
+    # Ajout du dépôt pour Java 17 si nécessaire
+    log "Configuration des dépôts pour Java 17..."
+    apt-get install -y software-properties-common || true
+    add-apt-repository -y ppa:openjdk-r/ppa 2>/dev/null || true
+    apt-get update -qq || true
+    
+    log "Installation de Java 17..."
+    if ! apt-get install -y openjdk-17-jdk; then
+        warn "Installation via PPA échouée, tentative alternative..."
+        
+        # Méthode alternative : téléchargement manuel
+        log "Téléchargement manuel de Java 17..."
+        cd /tmp
+        wget -q https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz || \
+        wget -q https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9/OpenJDK17U-jdk_x64_linux_hotspot_17.0.9_9.tar.gz || \
+        die "Impossible de télécharger Java 17"
+        
+        tar -xzf *.tar.gz
+        mv jdk-17* /opt/java17
+        ln -sf /opt/java17/bin/java /usr/local/bin/java
+        ln -sf /opt/java17/bin/javac /usr/local/bin/javac
+        
+        if ! command -v java &> /dev/null; then
+            die "Installation manuelle de Java échouée"
+        fi
+        ok "Java 17 installé manuellement ✓"
+    else
+        ok "Java 17 installé via apt ✓"
+    fi
+    
+    # Vérification de Java
+    java -version || die "Java ne fonctionne pas"
+    ok "Java $(java -version 2>&1 | head -n1 | cut -d'"' -f2) détecté ✓"
+    
+    # Installation de Maven
+    log "Installation de Maven..."
+    if ! apt-get install -y maven; then
+        warn "Installation Maven via apt échouée, installation manuelle..."
+        
+        cd /tmp
+        wget -q https://downloads.apache.org/maven/maven-3/3.9.6/binaries/apache-maven-3.9.6-bin.tar.gz || die "Impossible de télécharger Maven"
+        tar -xzf apache-maven-3.9.6-bin.tar.gz
+        mv apache-maven-3.9.6 /opt/maven
+        ln -sf /opt/maven/bin/mvn /usr/local/bin/mvn
+        
+        if ! command -v mvn &> /dev/null; then
+            die "Installation manuelle de Maven échouée"
+        fi
+        ok "Maven installé manuellement ✓"
+    else
+        ok "Maven installé via apt ✓"
+    fi
+    
+    # Vérification de Maven
+    mvn -version || die "Maven ne fonctionne pas"
+    ok "Maven $(mvn -version 2>&1 | head -n1 | cut -d' ' -f3) détecté ✓"
+    
+    log "Installation des autres dépendances système..."
     apt-get install -y \
-        openjdk-11-jdk \
         git \
-        maven \
         build-essential \
         libx11-dev \
         libxext-dev \
@@ -108,19 +163,7 @@ install_system_packages() {
         libglu1-mesa \
         2>&1 | grep -v "already" | grep -v "is already" || true
     
-    # Vérification spécifique de Java
-    if ! command -v java &> /dev/null; then
-        warn "Java n'a pas été installé correctement"
-        apt-get install -y openjdk-17-jdk || apt-get install -y openjdk-11-jdk || die "Impossible d'installer Java"
-    fi
-    
-    if command -v java &> /dev/null; then
-        ok "Java détecté ✓"
-    else
-        die "Java n'est toujours pas installé"
-    fi
-    
-    ok "Paquets système installés ✓"
+    ok "Toutes les dépendances installées ✓"
 }
 
 # ─── 3. Création et configuration du répertoire de travail ────────────────────
