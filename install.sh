@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# install.sh - VERSION RASPBERRY PI (ARM) - CORRECTIF DÉFINITIF
+# install.sh - VERSION CORRIGÉE POUR RASPBERRY PI
 # =============================================================================
 
 set -e
@@ -39,121 +39,85 @@ prepare_system() {
     apt-get update -qq
 }
 
-# ─── 2. Installation de Java (DEFAULT-JDK) et Dépendances ─────────────────────
-install_packages() {
-    section "Installation des dépendances ARM"
+# ─── 2. Installation de Java (DEFAULT) et Dépendances ─────────────────────────
+# CORRECTION : Utilisation de default-jdk pour éviter les erreurs d'architecture
+install_system_packages() {
+    section "Installation des paquets système"
     
-    log "Installation de Java (version système), Maven et Git..."
-    # On installe les paquets natifs du Raspberry Pi
-    apt-get install -y default-jdk maven git wget libx11-dev libxext-dev libxrender-dev libxtst-dev
-
-    if [ $? -eq 0 ]; then
-        ok "Installation des paquets réussie ✓"
+    log "Installation du JDK par défaut et de Maven..."
+    if apt-get install -y default-jdk maven git wget; then
+        ok "Java (default) et Maven installés avec succès ✓"
     else
-        die "Erreur lors de l'installation via apt-get."
+        die "Échec de l'installation des paquets système."
     fi
 
+    # Vérification de la version active
     java_version=$(java -version 2>&1 | head -n1)
-    ok "Java actif : $java_version"
+    ok "Utilisation de : $java_version"
 }
 
-# ─── 3. Gestion des Répertoires ──────────────────────────────────────────────
-setup_env() {
-    section "Configuration de l'environnement"
+# ─── 3. Préparation des répertoires ──────────────────────────────────────────
+setup_directories() {
+    section "Préparation des répertoires"
     mkdir -p "$BASE"
     chown "$REAL_USER:$REAL_USER" "$BASE"
 }
 
-# ─── 4. Synchronisation des projets Git ──────────────────────────────────────
-sync_repos() {
-    section "Synchronisation des sources"
+# ─── 5. Compilation (CORRIGÉE) ───────────────────────────────────────────────
+# CORRECTION : Chemin mis à jour pour pointer vers le bon pom.xml
+compile_projects() {
+    section "Compilation des projets"
     
-    cd "$BASE"
-
-    # MG2D
-    if [ ! -d "MG2D" ]; then
-        log "Clonage de MG2D..."
-        # REMPLACEZ PAR VOTRE LIEN REEL SI NECESSAIRE
-        sudo -u "$REAL_USER" git clone https://github.com/MG2D/MG2D.git MG2D || warn "Lien MG2D inaccessible"
-    else
-        log "Mise à jour de MG2D..."
-        cd MG2D && sudo -u "$REAL_USER" git pull && cd ..
-    fi
-
-    # Borne Arcade
-    if [ ! -d "borne_arcade" ]; then
-        log "Clonage de borne_arcade..."
-        # REMPLACEZ PAR VOTRE LIEN REEL SI NECESSAIRE
-        sudo -u "$REAL_USER" git clone https://github.com/votre-compte/borne_arcade.git borne_arcade || warn "Lien borne_arcade inaccessible"
-    else
-        log "Mise à jour de la borne..."
-        cd borne_arcade && sudo -u "$REAL_USER" git pull && cd ..
-    fi
-}
-
-# ─── 5. Compilation ──────────────────────────────────────────────────────────
-build() {
-    section "Compilation Maven"
-    
-    # Compilation MG2D (nécessaire pour la borne)
+    # 1. Compilation de MG2D (souvent requis par les autres projets)
     if [ -d "$BASE/MG2D" ]; then
-        log "Installation locale de MG2D..."
+        log "Compilation de MG2D..."
         cd "$BASE/MG2D"
-        sudo -u "$REAL_USER" mvn clean install -DskipTests
+        sudo -u "$REAL_USER" mvn install -DskipTests
     fi
-
-    # Compilation Borne
-    if [ -d "$BASE/borne_arcade" ]; then
-        log "Build de la Borne Arcade..."
-        cd "$BASE/borne_arcade"
+    
+    # 2. Compilation de NodeBuster avec le chemin spécifique
+    # Chemin : $BASE/borne-arcade-sae/projet/NodeBuster/
+    local NODEBUSTER_PATH="$BASE/borne-arcade-sae/projet/NodeBuster"
+    
+    if [ -f "$NODEBUSTER_PATH/pom.xml" ]; then
+        log "Compilation de NodeBuster dans le bon dossier..."
+        cd "$NODEBUSTER_PATH"
         sudo -u "$REAL_USER" mvn clean install -DskipTests
-        ok "Compilation terminée ✓"
+        ok "NodeBuster compilé avec succès ✓"
     else
-        die "Dossier borne_arcade introuvable."
+        die "ERREUR : pom.xml introuvable dans $NODEBUSTER_PATH"
     fi
 }
 
-# ─── 6. Lancement Automatique ────────────────────────────────────────────────
+# ─── 6. Configuration du lancement automatique ───────────────────────────────
 setup_autostart() {
-    section "Configuration de l'Autostart"
-
-    # Wrapper binaire
+    section "Configuration du lancement"
+    
+    # Création du lanceur
     cat <<EOF > "$LOCAL_BIN/borne-arcade"
 #!/bin/bash
-cd "$BASE/borne_arcade"
-exec mvn exec:java@borne
+cd "$BASE/borne-arcade-sae/projet/NodeBuster"
+mvn exec:java@borne
 EOF
     chmod +x "$LOCAL_BIN/borne-arcade"
-
-    # Entrée Desktop pour la session graphique
-    local AUTOSTART_DIR="$REAL_HOME/.config/autostart"
-    sudo -u "$REAL_USER" mkdir -p "$AUTOSTART_DIR"
-    
-    cat <<EOF > "$AUTOSTART_DIR/borne.desktop"
-[Desktop Entry]
-Type=Application
-Name=Borne Arcade
-Exec=$LOCAL_BIN/borne-arcade
-Terminal=false
-X-GNOME-Autostart-enabled=true
-EOF
-    chown "$REAL_USER:$REAL_USER" "$AUTOSTART_DIR/borne.desktop"
+    ok "Script de lancement créé dans $LOCAL_BIN/borne-arcade ✓"
 }
 
-# ─── Exécution ────────────────────────────────────────────────────────────────
+# ─── Main ────────────────────────────────────────────────────────────────────
 main() {
     prepare_system
-    install_packages
-    setup_env
-    sync_repos
-    build
+    install_system_packages
+    setup_directories
+    
+    # Assurez-vous que le dossier git contient bien borne-arcade-sae
+    # sync_repos (si vous avez une fonction de clonage)
+    
+    compile_projects
     setup_autostart
-
+    
     if [ "$NO_RUN" = false ]; then
-        section "Lancement..."
+        log "Lancement de l'application..."
         sudo -u "$REAL_USER" "$LOCAL_BIN/borne-arcade"
-    else
-        ok "Installation terminée. Tapez 'borne-arcade' pour jouer !"
     fi
 }
 
