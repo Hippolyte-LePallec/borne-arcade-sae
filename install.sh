@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# install.sh - VERSION RASPBERRY PI (ARM) - CIBLE UNIQUE NODEBUSTER
+# install.sh - VERSION RASPBERRY PI (ARM) - FULL UPDATE & NODEBUSTER FIX
 # =============================================================================
 
 set -e
@@ -26,80 +26,98 @@ fi
 REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME=$(getent passwd "$REAL_USER" | cut -d: -f6)
 BASE="$REAL_HOME/git"
-# Chemin exact vers NodeBuster d'après vos informations
-PATH_NODEBUSTER="$BASE/borne-arcade-sae/projet/NodeBuster"
+# Chemin mis à jour vers NodeBuster
+PATH_NODEBUSTER="$BASE/borne_arcade/projet/NodeBuster"
 LOCAL_BIN="/usr/local/bin"
 
-# ─── 1. Préparation du système ──────────────────────────────────────────────
+# ─── 1. Mise à jour du système (UPDATE & UPGRADE) ─────────────────────────────
 prepare_system() {
-    section "Installation des dépendances"
-    apt-get update -qq
-    # Installation du JDK par défaut (compatible ARM) et Maven
-    apt-get install -y default-jdk maven git wget
-    ok "Système prêt avec Java $(java -version 2>&1 | head -n1)"
+    section "Mise à jour du système"
+    
+    log "Exécution de apt-get update..."
+    apt-get update -y
+    
+    log "Exécution de apt-get upgrade (cela peut prendre du temps)..."
+    apt-get upgrade -y
+    
+    ok "Système à jour."
 }
 
-# ─── 2. Compilation de NodeBuster ─────────────────────────────────────────────
+# ─── 2. Installation des dépendances (JAVA DEFAULT) ───────────────────────────
+install_packages() {
+    section "Installation des paquets"
+    
+    log "Installation du JDK par défaut, Maven et Git..."
+    # On installe les paquets natifs compatibles ARM
+    apt-get install -y default-jdk maven git wget libx11-dev
+    
+    ok "Dépendances installées."
+    log "Version de Java : $(java -version 2>&1 | head -n1)"
+}
+
+# ─── 3. Compilation de NodeBuster (Cible le bon POM) ──────────────────────────
 compile_nodebuster() {
-    section "Compilation du projet NodeBuster"
+    section "Compilation du projet"
     
     if [ -d "$PATH_NODEBUSTER" ]; then
         cd "$PATH_NODEBUSTER"
         
-        # On vérifie si le pom.xml est présent ici
         if [ -f "pom.xml" ]; then
-            log "Lancement de la compilation Maven dans : $PATH_NODEBUSTER"
-            # On lance en tant qu'utilisateur normal pour éviter les problèmes de droits
+            log "Fichier pom.xml trouvé dans $PATH_NODEBUSTER"
+            log "Lancement de la compilation Maven..."
+            # Exécution en tant qu'utilisateur pour les droits du dossier .m2
             sudo -u "$REAL_USER" mvn clean install -DskipTests
-            ok "NodeBuster a été compilé avec succès."
+            ok "NodeBuster compilé avec succès."
         else
-            die "ERREUR : Aucun fichier pom.xml trouvé dans $PATH_NODEBUSTER"
+            die "ERREUR : Aucun pom.xml trouvé dans $PATH_NODEBUSTER. Vérifiez l'arborescence."
         fi
     else
-        die "ERREUR : Le répertoire $PATH_NODEBUSTER n'existe pas."
+        die "ERREUR : Le dossier $PATH_NODEBUSTER n'existe pas."
     fi
 }
 
-# ─── 3. Configuration du lancement ───────────────────────────────────────────
+# ─── 4. Configuration du lancement automatique ───────────────────────────────
 setup_launcher() {
     section "Configuration du lanceur"
 
-    # Création d'un script de commande simple pour lancer le jeu n'importe où
-    cat <<EOF > "$LOCAL_BIN/borne-arcade"
+    # Création du script de commande utilisable partout
+    cat <<EOF > "$LOCAL_BIN/borne_arcade"
 #!/bin/bash
 cd "$PATH_NODEBUSTER"
 exec mvn exec:java@borne
 EOF
-    chmod +x "$LOCAL_BIN/borne-arcade"
+    chmod +x "$LOCAL_BIN/borne_arcade"
     
-    # Création du dossier autostart s'il n'existe pas
+    # Configuration Autostart X11 (Interface graphique)
     local AUTO_DIR="$REAL_HOME/.config/autostart"
     sudo -u "$REAL_USER" mkdir -p "$AUTO_DIR"
 
-    # Fichier de lancement automatique pour l'interface graphique du Pi
     cat <<EOF > "$AUTO_DIR/borne.desktop"
 [Desktop Entry]
 Type=Application
 Name=NodeBuster Arcade
-Exec=$LOCAL_BIN/borne-arcade
+Exec=$LOCAL_BIN/borne_arcade
 Terminal=false
+X-GNOME-Autostart-enabled=true
 EOF
     chown "$REAL_USER:$REAL_USER" "$AUTO_DIR/borne.desktop"
     
-    ok "Commande 'borne-arcade' créée et configurée pour le démarrage."
+    ok "Lancement automatique configuré."
 }
 
-# ─── Exécution ────────────────────────────────────────────────────────────────
+# ─── Exécution du script ──────────────────────────────────────────────────────
 main() {
     prepare_system
+    install_packages
+    # On suppose que le code est déjà présent dans $BASE via Git
     compile_nodebuster
     setup_launcher
     
-    section "Installation terminée !"
-    log "Vous pouvez lancer le jeu avec la commande : borne-arcade"
+    section "INSTALLATION RÉUSSIE"
+    log "Vous pouvez lancer le jeu manuellement avec la commande : borne_arcade"
     
-    # Lancement automatique immédiat
-    sudo -u "$REAL_USER" "$LOCAL_BIN/borne-arcade"
+    # Lancement immédiat
+    sudo -u "$REAL_USER" "$LOCAL_BIN/borne_arcade"
 }
 
 main
