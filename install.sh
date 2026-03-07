@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# install.sh - VERSION CORRIGÉE POUR RASPBERRY PI (ARM)
+# install.sh POUR RASPBERRY PI (ARM)
 # =============================================================================
 
 set -e
@@ -43,10 +43,10 @@ check_dependencies() {
 install_system_packages() {
     section "Installation des paquets système"
     
-    log "Installation de Java 17 et Maven via les dépôts officiels..."
+    log "Installation de Java (default) et Maven via les dépôts officiels..."
     # Sur Raspberry Pi OS, on installe directement les versions ARM compatibles
-    if apt-get install -y openjdk-17-jdk maven git wget; then
-        ok "Java 17 et Maven installés avec succès ✓"
+    if apt-get install -y default-jdk maven git wget; then
+        ok "Java (default) et Maven installés avec succès ✓"
     else
         die "Échec de l'installation des paquets. Vérifiez votre connexion."
     fi
@@ -126,9 +126,9 @@ main() {
     install_system_packages
     setup_directories
     
-    # Remplacez les URLs par vos vrais dépôts
-    # clone_or_update "URL_MG2D" "MG2D"
-    # clone_or_update "URL_BORNE" "borne_arcade"
+    # Clone des dépôts
+    clone_or_update "https://github.com/synave/MG2D.git" "MG2D"
+    clone_or_update "https://github.com/Hippolyte-LePallec/borne-arcade-sae.git" "borne_arcade"
     
     compile_projects
     setup_autostart
