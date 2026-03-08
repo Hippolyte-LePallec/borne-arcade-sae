@@ -1,5 +1,5 @@
 #!/bin/bash
 xdotool mousemove 1280 1024
-cd projet/Minesweeper
+cd ..
 touch highscore
-java -cp .:../..:/home/pi/git/MG2D Minesweeper
+java -cp .:../..:/home/pi/git/MG2D projet.Minesweeper.Minesweeper

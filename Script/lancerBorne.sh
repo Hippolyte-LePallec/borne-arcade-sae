@@ -2,18 +2,19 @@
 
 setxkbmap borne
 
-cd /home/pi/git/borne_arcade
+cd ..
 echo "nettoyage des répertoires"
 echo "Veuillez patienter"
-./clean.sh
-./compilation.sh
+
+./Script/clean.sh
+./Script/compilation.sh
 
 echo "Lancement du  Menu"
 echo "Veuillez patienter"
 
 java -cp .:/home/pi/git/MG2D Main
 
-./clean.sh
+./Script/clean.sh
 
 for i in {30..1}
 do

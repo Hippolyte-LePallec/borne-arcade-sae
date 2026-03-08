@@ -1,0 +1,3 @@
+Un VIRUS dangereux a infecté votre borne d'arcade ! Des ronds violets
+se répandent dans le système. Détruisez les boîtes colorées pour nettoyer
+la borne, mais ÉVITEZ les nœuds viraux violets ou vous perdrez des points !
